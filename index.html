@@ -40,6 +40,7 @@
       <nav class="nav-list" aria-label="Main navigation">
         <a class="nav-link active" href="#overview" data-page="overview"><span>◫</span> Overview</a>
         <a class="nav-link" href="#locations" data-page="locations"><span>⌖</span> Locations</a>
+        <a class="nav-link" href="#alerts" data-page="alerts"><span>!</span> Staffroom Alerts</a>
         <a class="nav-link" href="#devices" data-page="devices"><span>▣</span> Devices</a>
         <a class="nav-link" href="#history" data-page="history"><span>⌁</span> Historical Data</a>
         <a class="nav-link" href="#actions" data-page="actions"><span>✓</span> Action Tracker</a>
@@ -126,6 +127,25 @@
         </form>
         <div class="firestore-location-list" id="firestoreLocationList" aria-live="polite"></div>
         <div class="panel empty-panel" id="locationEmpty"><span class="empty-icon">⌖</span><h2>No locations added yet</h2><p>When an authorised team member adds a monitoring site, it will appear here for everyone to view.</p></div>
+      </section>
+
+      <section class="page-content secondary-page" id="alerts">
+        <div class="eyebrow">CLASSROOM MONITORING</div>
+        <h1>Staffroom Alerts</h1>
+        <p class="intro">Live classroom alerts for teachers. Alerts are created after three unsuccessful classroom warnings.</p>
+        <div class="alert-summary"><span class="alert-live-dot"></span><span id="alertConnectionStatus">Connecting to live alerts…</span></div>
+        <form class="panel alert-test-form" id="alertTestForm" hidden>
+          <div class="panel-heading"><div><h2>Test the staffroom dashboard</h2><p>Create a clearly labelled test alert. This does not come from the sensor.</p></div><span class="pill">TEAM ONLY</span></div>
+          <label for="alertLocation">Classroom</label>
+          <select id="alertLocation" required><option value="">Select a classroom</option></select>
+          <label for="alertRawAdc">Raw sensor reading (ADC 0–1023)</label>
+          <input id="alertRawAdc" type="number" min="0" max="1023" value="850" required>
+          <button class="location-submit" id="alertTestSubmit" type="submit">Create test alert</button>
+          <p class="location-form-message" id="alertTestMessage" role="status" aria-live="polite"></p>
+        </form>
+        <div class="alert-list" id="staffroomAlertList" aria-live="polite"></div>
+        <div class="panel empty-panel" id="alertsEmpty"><span class="empty-icon">✓</span><h2>No classroom alerts</h2><p>When a classroom remains noisy after three warnings, its alert will appear here for teachers.</p></div>
+        <p class="alert-footnote">Prototype note: test alerts can be created by authorised team members. Automatic sensor-to-Firestore alert delivery will be connected after the device communication method is implemented and tested. ADC values are raw readings, not decibels.</p>
       </section>
       <section class="page-content secondary-page" id="devices"><div class="eyebrow">WORKSPACE</div><h1>Devices</h1><p class="intro">Keep track of sensor units and their connection status.</p><div class="panel empty-panel"><span class="empty-icon">▣</span><h2>No live device connected</h2><p>The Arduino and sensor integration is not connected to this website yet. Device readings will appear after the data-transfer method is implemented and tested.</p></div></section>
       <section class="page-content secondary-page" id="history"><div class="eyebrow">WORKSPACE</div><h1>Historical Data</h1><p class="intro">Explore observations by date, time, and location.</p><div class="panel empty-panel"><span class="empty-icon">⌁</span><h2>Historical records are not connected yet</h2><p>This section will show stored observations once the Firebase database is configured and real device data is available.</p></div></section>
