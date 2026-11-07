@@ -11,7 +11,7 @@ This HTTPS endpoint accepts JSON observations from a registered ESP8266 and writ
 ```sh
 npm install -g firebase-tools
 firebase login
-firebase use noisemap-ead56
+firebase projects:list
 ```
 
 ## Install and deploy
@@ -22,7 +22,7 @@ From the repository root:
 cd functions
 npm install
 cd ..
-firebase deploy --only functions:ingestDeviceData
+firebase deploy --project noisemap-ead56 --only functions:ingestDeviceData
 ```
 
 The deploy output provides the HTTPS URL. The function is configured for asia-south1.
@@ -30,7 +30,7 @@ The deploy output provides the HTTPS URL. The function is configured for asia-so
 Deploy the repository Firestore rules separately if they have not already been published:
 
 ```sh
-firebase deploy --only firestore:rules
+firebase deploy --project noisemap-ead56 --only firestore:rules
 ```
 
 ## Register a device
