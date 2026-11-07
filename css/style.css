@@ -92,3 +92,16 @@
 .record-form input:focus,.record-form textarea:focus,.record-form select:focus{outline:2px solid rgba(22,168,153,.18);border-color:var(--teal)}
 #deviceList,#observationList,#actionList{margin-top:18px}
 #deviceEmpty,#observationEmpty,#actionEmpty{margin-top:18px}
+
+
+/* Clean, data-first overview */
+.overview-empty{max-width:900px;margin:28px 0 18px;padding:34px;text-align:center;align-items:center}
+.overview-empty h2{font:700 17px Manrope,sans-serif;color:#294354;margin:0 0 9px}
+.overview-empty>p{max-width:650px;font-size:12px;line-height:1.7;color:#788994;margin:0 auto}
+.overview-empty .overview-note{margin-top:12px;color:#91a0aa;font-size:10px}
+.overview-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.overview-link{display:flex;flex-direction:column;gap:7px;text-decoration:none;padding:17px;transition:border-color .15s,transform .15s}
+.overview-link:hover{border-color:#a8d9d1;transform:translateY(-2px)}
+.overview-link strong{font:700 12px Manrope,sans-serif;color:#294354}
+.overview-link span{font-size:10px;color:#82939e}
+@media(max-width:700px){.overview-empty{padding:25px 18px}.overview-links{grid-template-columns:1fr}}
