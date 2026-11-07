@@ -33,6 +33,12 @@ service cloud.firestore {
       allow create, update, delete: if isTeamMember();
     }
 
+    // Staffroom alerts are readable on the public dashboard; only team members can manage them.
+    match /alerts/{alertId} {
+      allow read: if true;
+      allow create, update, delete: if isTeamMember();
+    }
+
     // Team membership documents are managed manually in Firebase Console.
     match /teamMembers/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
