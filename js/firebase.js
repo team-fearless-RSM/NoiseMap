@@ -85,7 +85,7 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       .onSnapshot(snapshot => {
         const dailyCounts = {};
         snapshot.docs.forEach(doc => {
-          if (/^daily_\\d{4}-\\d{2}-\\d{2}$/.test(doc.id)) {
+          if (/^daily_\d{4}-\d{2}-\d{2}$/.test(doc.id)) {
             dailyCounts[doc.id.slice(6)] = Number(doc.data().count || 0);
           }
         });
