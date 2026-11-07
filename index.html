@@ -46,7 +46,7 @@
           <div class="date-chip"><span>◷</span> <span id="todayLabel">Today</span></div>
         </div>
 
-        <div class="notice"><span class="notice-icon">i</span><div><strong>Demo mode is active</strong><p>The figures and chart below are sample data for the website preview. They are not live sensor readings or calibrated dB/dB(A) measurements.</p></div><span class="demo-tag">SAMPLE DATA</span></div>
+        <div class="notice"><span class="notice-icon">i</span><div><strong>Demo mode is active</strong><p>The figures and chart below are sample data for the website preview. They are not live sensor readings or calibrated dB/dB(A) measurements. Firebase data services are prepared but remain inactive until the project configuration is added.</p></div><span class="demo-tag">SAMPLE DATA</span></div>
 
         <div class="stats-grid">
           <article class="stat-card"><div class="stat-top"><span>Monitored locations</span><span class="stat-icon teal">⌖</span></div><div class="stat-value">03</div><div class="stat-foot">Sample locations</div></article>
@@ -97,6 +97,11 @@
       <section class="page-content secondary-page" id="about"><div class="eyebrow">THE PROJECT</div><h1>About NoiseMap</h1><p class="intro">Making local sound observations easier to understand and act on.</p><div class="panel about-panel"><h2>Our approach</h2><p>NoiseMap is a Team Fearless NRL Changemakers project concept. The goal is to build a system that records observations at selected locations, presents trends over time, and helps the team document awareness and follow-up actions.</p><div class="about-note"><strong>Measurement integrity matters.</strong><p>An LM393 sound sensor provides threshold and analogue signal information; its raw readings are not calibrated sound-pressure measurements. NoiseMap will only display dB or dB(A) if suitable calibrated measurement hardware and a documented calibration method are implemented.</p></div></div></section>
     </main>
   </div>
+
+  <!-- Firebase compat SDKs. Firebase remains inactive until js/firebase.js is configured. -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="js/firebase.js"></script>
   <script src="js/app.js"></script>
 </body>
