@@ -8,6 +8,9 @@
   const authMessage = document.getElementById("authMessage");
   const signOutButton = document.getElementById("signOutButton");
   const signedInEmail = document.getElementById("signedInEmail");
+  const visitorCount = document.getElementById("visitorCount");
+  const visitorCountStatus = document.getElementById("visitorCountStatus");
+  let visitorCountUnsubscribe = null;
 
   const teamSignInButton = document.getElementById("teamSignInButton");
   const publicViewButton = document.getElementById("publicViewButton");
@@ -30,6 +33,22 @@
   let canEditAlerts = false;
   let cachedAlerts = [];
   let locationUnsubscribe = null;
+
+  function connectVisitorCounter() {
+    if (!window.NoiseMap || !window.NoiseMap.configured || !visitorCount) return;
+    window.NoiseMap.incrementVisitorCount().catch(error => {
+      console.error("Could not record website visit:", error);
+      if (visitorCountStatus) visitorCountStatus.textContent = "Visit count unavailable";
+    });
+    if (visitorCountUnsubscribe) visitorCountUnsubscribe();
+    visitorCountUnsubscribe = window.NoiseMap.subscribeVisitorCount(count => {
+      visitorCount.textContent = Number(count).toLocaleString("en-IN");
+      if (visitorCountStatus) visitorCountStatus.textContent = "All recorded website visits";
+    }, error => {
+      console.error("Could not load visitor count:", error);
+      if (visitorCountStatus) visitorCountStatus.textContent = "Visit count unavailable";
+    });
+  }
 
   function showLogin(message) {
     if (authScreen) authScreen.hidden = false;
@@ -98,6 +117,7 @@
   }
 
   if (window.NoiseMap && window.NoiseMap.configured) {
+    connectVisitorCounter();
     connectLocations();
     connectAlerts();
     window.NoiseMap.onAuthStateChanged(async user => {
