@@ -105,3 +105,6 @@
 .overview-link strong{font:700 12px Manrope,sans-serif;color:#294354}
 .overview-link span{font-size:10px;color:#82939e}
 @media(max-width:700px){.overview-empty{padding:25px 18px}.overview-links{grid-template-columns:1fr}}
+
+/* Team-only visitor counter card on the clean overview */
+.visitor-stat-card{max-width:320px;margin:0 0 18px}
