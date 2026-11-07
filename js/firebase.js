@@ -31,7 +31,13 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       addLocation: async () => { throw new Error("Firebase is not configured yet."); },
       deleteLocation: async () => { throw new Error("Firebase is not configured yet."); },
       addDevice: async () => { throw new Error("Firebase is not configured yet."); },
+      deleteDevice: async () => { throw new Error("Firebase is not configured yet."); },
+      subscribeDevices: () => () => {},
       addAction: async () => { throw new Error("Firebase is not configured yet."); },
+      deleteAction: async () => { throw new Error("Firebase is not configured yet."); },
+      subscribeActions: () => () => {},
+      deleteObservation: async () => { throw new Error("Firebase is not configured yet."); },
+      subscribeObservations: () => () => {},
       incrementVisitorCount: async () => { throw new Error("Firebase is not configured yet."); },
       subscribeVisitorCount: () => () => {}
     };
@@ -105,6 +111,12 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: auth.currentUser.uid
     }),
+    subscribeDevices: (onData, onError) => db.collection("devices").orderBy("createdAt", "desc")
+      .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
+    deleteDevice: deviceId => {
+      if (!auth.currentUser) throw new Error("Sign in with an authorised team account first.");
+      return db.collection("devices").doc(deviceId).delete();
+    },
     addDevice: data => db.collection("devices").add({
       deviceId: String(data.deviceId || "").trim(),
       locationId: data.locationId || null,
@@ -113,6 +125,12 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: auth.currentUser.uid
     }),
+    subscribeObservations: (onData, onError) => db.collection("observations").orderBy("timestamp", "desc").limit(300)
+      .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
+    deleteObservation: observationId => {
+      if (!auth.currentUser) throw new Error("Sign in with an authorised team account first.");
+      return db.collection("observations").doc(observationId).delete();
+    },
     addObservation: data => db.collection("observations").add({
       deviceId: data.deviceId || null,
       locationId: data.locationId || null,
@@ -124,6 +142,12 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: auth.currentUser.uid
     }),
+    subscribeActions: (onData, onError) => db.collection("actions").orderBy("createdAt", "desc").limit(300)
+      .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
+    deleteAction: actionId => {
+      if (!auth.currentUser) throw new Error("Sign in with an authorised team account first.");
+      return db.collection("actions").doc(actionId).delete();
+    },
     addAction: data => db.collection("actions").add({
       observationId: data.observationId || null,
       description: String(data.description || "").trim(),
