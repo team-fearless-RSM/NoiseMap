@@ -224,22 +224,48 @@
         (Number.isFinite(Number(alert.rawAdc)) ? alert.rawAdc + " ADC" : "not recorded") +
         (alert.source === "manual_test" ? " · TEST ALERT" : "");
       card.append(top, detail);
-      if (canEditAlerts && alert.status !== "resolved") {
+      if (canEditAlerts) {
         const actions = document.createElement("div");
         actions.className = "staff-alert-actions";
-        if (alert.status !== "acknowledged") {
-          const acknowledge = document.createElement("button");
-          acknowledge.type = "button";
-          acknowledge.textContent = "Acknowledge";
-          acknowledge.addEventListener("click", () => changeAlertStatus(alert.id, "acknowledged", acknowledge));
-          actions.appendChild(acknowledge);
+        if (alert.status !== "resolved") {
+          if (alert.status !== "acknowledged") {
+            const acknowledge = document.createElement("button");
+            acknowledge.type = "button";
+            acknowledge.textContent = "Acknowledge";
+            acknowledge.addEventListener("click", () => changeAlertStatus(alert.id, "acknowledged", acknowledge));
+            actions.appendChild(acknowledge);
+          }
+          const resolve = document.createElement("button");
+          resolve.type = "button";
+          resolve.className = "resolve-alert-button";
+          resolve.textContent = "Mark resolved";
+          resolve.addEventListener("click", () => changeAlertStatus(alert.id, "resolved", resolve));
+          actions.appendChild(resolve);
         }
-        const resolve = document.createElement("button");
-        resolve.type = "button";
-        resolve.className = "resolve-alert-button";
-        resolve.textContent = "Mark resolved";
-        resolve.addEventListener("click", () => changeAlertStatus(alert.id, "resolved", resolve));
-        actions.appendChild(resolve);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "location-delete-button";
+        deleteButton.textContent = "Delete alert";
+        deleteButton.addEventListener("click", async () => {
+          const confirmed = window.confirm(
+            'Permanently delete the alert for "' + (alert.classroomName || "this classroom") + '"? This will remove only this alert record.'
+          );
+          if (!confirmed) return;
+          deleteButton.disabled = true;
+          deleteButton.textContent = "Deleting…";
+          try {
+            await window.NoiseMap.deleteAlert(alert.id);
+          } catch (error) {
+            console.error("Could not delete alert:", error);
+            window.alert(error.code === "permission-denied"
+              ? "Permission denied. Check your Team Fearless membership and Firestore alerts rule."
+              : "Could not delete this alert. Please try again.");
+            deleteButton.disabled = false;
+            deleteButton.textContent = "Delete alert";
+          }
+        });
+        actions.appendChild(deleteButton);
         card.appendChild(actions);
       }
       alertList.appendChild(card);
