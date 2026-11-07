@@ -9,6 +9,9 @@
   const signOutButton = document.getElementById("signOutButton");
   const signedInEmail = document.getElementById("signedInEmail");
 
+  const teamSignInButton = document.getElementById("teamSignInButton");
+  const publicViewButton = document.getElementById("publicViewButton");
+
   function showLogin(message) {
     if (authScreen) authScreen.hidden = false;
     if (appShell) appShell.hidden = true;
@@ -18,16 +21,19 @@
   function showWorkspace(user) {
     if (authScreen) authScreen.hidden = true;
     if (appShell) appShell.hidden = false;
-    if (signedInEmail) signedInEmail.textContent = user.email || "Team member";
+    if (signedInEmail) signedInEmail.textContent = user ? (user.email || "Team member") : "Public view";
+    if (teamSignInButton) teamSignInButton.hidden = Boolean(user);
+    if (signOutButton) signOutButton.hidden = !user;
   }
 
-  if (!window.NoiseMap || !window.NoiseMap.configured) {
-    showLogin("Firebase could not initialise. Check the Firebase configuration and try refreshing.");
+  if (teamSignInButton) teamSignInButton.addEventListener("click", () => showLogin(""));
+  if (publicViewButton) publicViewButton.addEventListener("click", () => showWorkspace(null));
+
+  // The dashboard is public by default. Firebase authentication only unlocks team editing.
+  if (window.NoiseMap && window.NoiseMap.configured) {
+    window.NoiseMap.onAuthStateChanged(user => showWorkspace(user));
   } else {
-    window.NoiseMap.onAuthStateChanged(user => {
-      if (user) showWorkspace(user);
-      else showLogin("");
-    });
+    showWorkspace(null);
   }
 
   if (loginForm) {
