@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Only accounts explicitly created/enabled in Firebase Authentication
+    // can access NoiseMap data. Public self-registration is not implemented.
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    match /locations/{documentId} {
+      allow read, create, update, delete: if signedIn();
+    }
+    match /devices/{documentId} {
+      allow read, create, update, delete: if signedIn();
+    }
+    match /observations/{documentId} {
+      allow read, create, update, delete: if signedIn();
+    }
+    match /actions/{documentId} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    // Everything not explicitly listed above is denied.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
