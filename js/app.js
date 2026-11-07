@@ -28,6 +28,7 @@
   let alertUnsubscribe = null;
   let currentUser = null;
   let canEditAlerts = false;
+  let cachedAlerts = [];
   let locationUnsubscribe = null;
 
   function showLogin(message) {
@@ -45,6 +46,7 @@
     if (locationForm) locationForm.hidden = !isEditor;
     if (alertTestForm) alertTestForm.hidden = !isEditor;
     canEditAlerts = Boolean(user && isEditor);
+    renderAlerts(cachedAlerts);
     canEditAlerts = Boolean(user && isEditor);
   }
 
@@ -201,6 +203,7 @@
     if (alertStatusLine) alertStatusLine.textContent = "Loading staffroom alerts…";
     if (alertUnsubscribe) alertUnsubscribe();
     alertUnsubscribe = window.NoiseMap.subscribeAlerts(alerts => {
+      cachedAlerts = alerts;
       renderAlerts(alerts);
       if (alertStatusLine) alertStatusLine.textContent = "Live dashboard · " + alerts.length + " alert record(s)";
     }, error => {
