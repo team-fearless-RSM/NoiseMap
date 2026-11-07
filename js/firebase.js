@@ -23,6 +23,7 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       configured: false, auth: null, db: null,
       signIn: async () => { throw new Error("Firebase is not configured yet. Add your Firebase Web App config first."); },
       signOut: async () => {},
+      onAuthStateChanged: callback => { if (typeof callback === "function") callback(null); return () => {}; },
       addObservation: async () => { throw new Error("Firebase is not configured yet."); },
       addLocation: async () => { throw new Error("Firebase is not configured yet."); },
       addDevice: async () => { throw new Error("Firebase is not configured yet."); },
