@@ -135,3 +135,27 @@
 .analytics-comparison.is-up{color:#0b806e;background:#e8f7f2}
 .analytics-comparison.is-down{color:#b35c36;background:#fff2e9}
 @media(max-width:700px){.analytics-monthly-bars{gap:3px}.analytics-monthly-bars .analytics-bar-value,.analytics-monthly-bars .analytics-bar-label{font-size:7px}.analytics-monthly-bars .analytics-bar-track{width:100%}}
+
+/* Device monitoring dashboard */
+.device-monitoring{margin:18px 0 22px;padding:20px;background:#fff;border:1px solid #e6edf0;border-radius:14px;box-shadow:0 8px 24px rgba(25,55,70,.04)}
+.device-monitoring-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+.device-monitoring-heading h2{font:700 17px Manrope,sans-serif;color:#294354;margin:0 0 5px}
+.device-monitoring-heading p,.device-monitor-footnote{font-size:11px;line-height:1.55;color:#8798a2;margin:0}
+.device-monitoring-tag{font-size:8px;font-weight:800;letter-spacing:1px;color:#147f83;background:#e9f7f6;padding:7px 9px;border-radius:6px;white-space:nowrap}
+.device-monitoring-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.device-monitor-stat{padding:13px 14px;border:1px solid #eaf0f2;border-radius:10px;background:#fbfdfd;display:flex;flex-direction:column;gap:7px}
+.device-monitor-stat span{font-size:10px;color:#84949e}
+.device-monitor-stat strong{font:700 24px Manrope,sans-serif;color:#294354}
+.device-monitor-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.device-monitor-card{padding:15px;border:1px solid #e6edf0;border-radius:11px;background:#fff;min-width:0}
+.device-monitor-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.device-monitor-card-top h3{font:700 13px Manrope,sans-serif;color:#294354;margin:2px 0 12px;overflow-wrap:anywhere}
+.device-monitor-status{font-size:8px;font-weight:700;border-radius:20px;padding:5px 7px;white-space:nowrap}
+.device-monitor-status.is-recent{color:#087a68;background:#e5f7f1}
+.device-monitor-status.is-stale{color:#9a6425;background:#fff4df}
+.device-monitor-status.is-waiting{color:#667984;background:#edf2f4}
+.device-monitor-reading{font:700 31px Manrope,sans-serif;color:#147f83;line-height:1.15}
+.device-monitor-unit{display:block;font-size:8px;letter-spacing:.8px;color:#91a0a8;margin:3px 0 13px}
+.device-monitor-meta{font-size:10px;line-height:1.5;color:#71838d;margin:4px 0;overflow-wrap:anywhere}
+.device-monitor-footnote{margin-top:13px}
+@media(max-width:600px){.device-monitoring{padding:14px}.device-monitoring-stats{grid-template-columns:1fr 1fr}.device-monitor-stat:last-child{grid-column:1/-1}.device-monitoring-heading{flex-direction:column}}
