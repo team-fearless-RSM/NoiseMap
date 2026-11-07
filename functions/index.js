@@ -67,6 +67,11 @@ exports.ingestDeviceData = onRequest(
     if (event === "staffroom_alert" && warningCount !== 3) {
       return send(res, 400, { ok: false, error: "Staffroom alert requires warning_count 3" });
     }
+    const episodeId = data.episode_id;
+    if (event === "staffroom_alert" &&
+        (typeof episodeId !== "string" || !/^[A-Za-z0-9_-]{6,64}$/.test(episodeId))) {
+      return send(res, 400, { ok: false, error: "episode_id is required for staffroom alerts" });
+    }
 
     try {
       // Device records are created by authorised team members in the NoiseMap dashboard.
@@ -107,11 +112,6 @@ exports.ingestDeviceData = onRequest(
 
       let alertCreated = false;
       if (event === "staffroom_alert") {
-        const episodeId = data.episode_id;
-        if (typeof episodeId !== "string" || !/^[A-Za-z0-9_-]{6,64}$/.test(episodeId)) {
-          return send(res, 400, { ok: false, error: "episode_id is required for staffroom alerts" });
-        }
-
         const alertId = (deviceId + "_" + episodeId).slice(0, 120);
         const alertRef = db.collection("alerts").doc(alertId);
         await db.runTransaction(async transaction => {
