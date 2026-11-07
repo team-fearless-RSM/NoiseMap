@@ -166,6 +166,18 @@
           <div class="device-monitor-grid" id="deviceMonitorGrid" aria-live="polite"></div>
           <p class="device-monitor-footnote" id="deviceMonitorNote">Waiting for registered devices and saved observations. Raw ADC values are not decibels.</p>
         </section>
+        <section class="panel sensor-simulator" id="sensorSimulator" hidden aria-label="Sensor simulator">
+          <div class="panel-heading"><div><h2>Sensor simulator</h2><p>Generate clearly labelled test readings while the physical NodeMCU is unavailable.</p></div><span class="simulator-badge">TEST MODE</span></div>
+          <label for="simulatorDevice">Select registered device</label>
+          <select id="simulatorDevice"><option value="">Select a device</option></select>
+          <div class="simulator-controls">
+            <button class="location-submit" type="button" id="simulatorOneReading">Send one test reading</button>
+            <button class="simulator-start" type="button" id="simulatorStart">Start automatic test</button>
+            <button class="simulator-stop" type="button" id="simulatorStop" disabled>Stop</button>
+          </div>
+          <p class="simulator-status" id="simulatorStatus" role="status">Simulator stopped. No readings are being generated.</p>
+          <p class="simulator-disclaimer">All simulator records are marked SIMULATED in Firestore. They are not real sensor readings and must not be used as environmental evidence.</p>
+        </section>
         <form class="panel location-form record-form" id="deviceForm" hidden>
           <div class="panel-heading"><div><h2>Register a device</h2><p>Adding a device record does not mean it is connected or sending live readings.</p></div></div>
           <label for="deviceId">Device name / ID</label><input id="deviceId" required maxlength="100" placeholder="e.g. NM-CLASS-01">
