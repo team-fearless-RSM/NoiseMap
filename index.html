@@ -12,12 +12,12 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <section class="auth-screen" id="authScreen" aria-labelledby="loginTitle">
+  <section class="auth-screen" id="authScreen" hidden aria-labelledby="loginTitle">
     <div class="auth-card">
       <a class="auth-brand" href="#" aria-label="NoiseMap"><span class="brand-mark">N<span>•</span></span><span><strong>NoiseMap</strong><small>TEAM FEARLESS</small></span></a>
       <div class="eyebrow">TEAM FEARLESS · NRL CHANGEMAKERS</div>
       <h1 id="loginTitle">Welcome back.</h1>
-      <p class="auth-intro">Sign in with your authorised team account to access the NoiseMap workspace.</p>
+      <p class="auth-intro">NoiseMap is open to everyone. Team members can sign in to manage project records.</p>
       <form id="loginForm">
         <label for="loginEmail">Email address</label>
         <input id="loginEmail" name="email" type="email" autocomplete="username" placeholder="you@example.com" required>
@@ -26,10 +26,11 @@
         <button class="auth-submit" id="loginButton" type="submit">Sign in to NoiseMap</button>
         <p class="auth-message" id="authMessage" role="status" aria-live="polite"></p>
       </form>
-      <p class="auth-foot">Access is limited to accounts created by the NoiseMap administrator.</p>
+      <p class="auth-foot">Only authorised Team Fearless accounts can make changes.</p>
+      <button class="public-view-button" id="publicViewButton" type="button">← Back to public dashboard</button>
     </div>
   </section>
-  <div class="app-shell" id="appShell" hidden>
+  <div class="app-shell" id="appShell">
     <aside class="sidebar" id="sidebar">
       <a class="brand" href="#overview" aria-label="NoiseMap home">
         <span class="brand-mark">N<span>•</span></span>
@@ -54,7 +55,7 @@
       <header class="topbar">
         <button class="menu-button" id="menuButton" aria-label="Toggle navigation">☰</button>
         <div class="breadcrumb">Workspace <span>/</span> <strong id="pageName">Overview</strong></div>
-        <div class="topbar-right"><span class="status-dot"></span><span id="signedInEmail">Signed in</span><button class="signout-button" id="signOutButton" type="button">Sign out</button><span class="top-avatar">TF</span></div>
+        <div class="topbar-right"><span class="status-dot"></span><span id="signedInEmail">Public view</span><button class="team-login-button" id="teamSignInButton" type="button">Team sign in</button><button class="signout-button" id="signOutButton" type="button" hidden>Sign out</button><span class="top-avatar">TF</span></div>
       </header>
 
       <section class="page-content" id="overview">
@@ -63,7 +64,7 @@
           <div class="date-chip"><span>◷</span> <span id="todayLabel">Today</span></div>
         </div>
 
-        <div class="notice"><span class="notice-icon">i</span><div><strong>Demo mode is active</strong><p>The figures and chart below are sample data for the website preview. They are not live sensor readings or calibrated dB/dB(A) measurements. Firebase data services are prepared but remain inactive until the project configuration is added.</p></div><span class="demo-tag">SAMPLE DATA</span></div>
+        <div class="notice"><span class="notice-icon">i</span><div><strong>Demo mode is active</strong><p>The figures and chart below are sample data for the website preview. They are not live sensor readings or calibrated dB/dB(A) measurements. Firestore access is configured for public viewing and authorised team updates. Live sensor readings are not connected yet.</p></div><span class="demo-tag">SAMPLE DATA</span></div>
 
         <div class="stats-grid">
           <article class="stat-card"><div class="stat-top"><span>Monitored locations</span><span class="stat-icon teal">⌖</span></div><div class="stat-value">03</div><div class="stat-foot">Sample locations</div></article>
