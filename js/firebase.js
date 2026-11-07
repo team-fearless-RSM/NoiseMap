@@ -59,15 +59,38 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       return member.exists;
     },
     incrementVisitorCount: async () => {
-      const ref = db.collection("siteStats").doc("visitorCounter");
-      // Atomic increment: does not need a public read of the counter document.
-      return ref.set({
-        count: firebase.firestore.FieldValue.increment(1),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+      // Use India calendar dates so daily analytics follow the project's local timezone.
+      const dateParts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit"
+      }).formatToParts(new Date()).reduce((parts, item) => {
+        if (item.type !== "literal") parts[item.type] = item.value;
+        return parts;
+      }, {});
+      const dayId = "daily_" + dateParts.year + "-" + dateParts.month + "-" + dateParts.day;
+      const increment = firebase.firestore.FieldValue.increment(1);
+      const updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      // Both writes are atomic increments; public visitors do not need to read these documents.
+      return Promise.all([
+        db.collection("siteStats").doc("visitorCounter").set(
+          { count: increment, updatedAt }, { merge: true }
+        ),
+        db.collection("siteStats").doc(dayId).set(
+          { count: increment, updatedAt }, { merge: true }
+        )
+      ]);
     },
     subscribeVisitorCount: (onData, onError) => db.collection("siteStats").doc("visitorCounter")
       .onSnapshot(snapshot => onData(snapshot.exists ? Number(snapshot.data().count || 0) : 0), onError),
+    subscribeVisitorAnalytics: (onData, onError) => db.collection("siteStats")
+      .onSnapshot(snapshot => {
+        const dailyCounts = {};
+        snapshot.docs.forEach(doc => {
+          if (/^daily_\\d{4}-\\d{2}-\\d{2}$/.test(doc.id)) {
+            dailyCounts[doc.id.slice(6)] = Number(doc.data().count || 0);
+          }
+        });
+        onData(dailyCounts);
+      }, onError),
     subscribeAlerts: (onData, onError) => db.collection("alerts").orderBy("createdAt", "desc").limit(100)
       .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
     addAlert: data => db.collection("alerts").add({
