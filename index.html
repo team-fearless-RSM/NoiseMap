@@ -148,9 +148,49 @@
         <div class="panel empty-panel" id="alertsEmpty"><span class="empty-icon">✓</span><h2>No classroom alerts</h2><p>When a classroom remains noisy after three warnings, its alert will appear here for teachers.</p></div>
         <p class="alert-footnote">Prototype note: test alerts can be created by authorised team members. Automatic sensor-to-Firestore alert delivery will be connected after the device communication method is implemented and tested. ADC values are raw readings, not decibels.</p>
       </section>
-      <section class="page-content secondary-page" id="devices"><div class="eyebrow">WORKSPACE</div><h1>Devices</h1><p class="intro">Keep track of sensor units and their connection status.</p><div class="panel empty-panel"><span class="empty-icon">▣</span><h2>No live device connected</h2><p>The Arduino and sensor integration is not connected to this website yet. Device readings will appear after the data-transfer method is implemented and tested.</p></div></section>
-      <section class="page-content secondary-page" id="history"><div class="eyebrow">WORKSPACE</div><h1>Historical Data</h1><p class="intro">Explore observations by date, time, and location.</p><div class="panel empty-panel"><span class="empty-icon">⌁</span><h2>Historical records are not connected yet</h2><p>This section will show stored observations once the Firebase database is configured and real device data is available.</p></div></section>
-      <section class="page-content secondary-page" id="actions"><div class="eyebrow">WORKSPACE</div><h1>Action Tracker</h1><p class="intro">Record what the team does after identifying a concern.</p><div class="panel empty-panel"><span class="empty-icon">✓</span><h2>Track actions transparently</h2><p>Future records can include the observation reference, action taken, date, responsible person, and verified response status. No authority contact or response is claimed in this prototype.</p></div></section>
+      <section class="page-content secondary-page" id="devices">
+        <div class="eyebrow">WORKSPACE</div><h1>Devices</h1>
+        <p class="intro">View registered sensor units. Authorised Team Fearless members can add and delete device records.</p>
+        <form class="panel location-form record-form" id="deviceForm" hidden>
+          <div class="panel-heading"><div><h2>Register a device</h2><p>Adding a device record does not mean it is connected or sending live readings.</p></div></div>
+          <label for="deviceId">Device name / ID</label><input id="deviceId" required maxlength="100" placeholder="e.g. NM-CLASS-01">
+          <label for="deviceLocation">Classroom / location</label><select id="deviceLocation"><option value="">Select a location</option></select>
+          <label for="deviceHardware">Hardware</label><input id="deviceHardware" value="NodeMCU ESP8266 + LM393" maxlength="150">
+          <label for="deviceStatus">Connection status</label><select id="deviceStatus"><option value="offline">Offline</option><option value="planned">Planned</option><option value="online">Online (verified only)</option></select>
+          <button class="location-submit" id="deviceSubmit" type="submit">Add device</button><p class="location-form-message" id="deviceFormMessage" role="status"></p>
+        </form>
+        <div class="firestore-location-list" id="deviceList" aria-live="polite"></div>
+        <div class="panel empty-panel" id="deviceEmpty"><span class="empty-icon">▣</span><h2>No device records yet</h2><p>Registered devices will appear here. Live readings are not connected yet.</p></div>
+      </section>
+      <section class="page-content secondary-page" id="history">
+        <div class="eyebrow">WORKSPACE</div><h1>Historical Data</h1>
+        <p class="intro">View stored raw sensor observations by location and device. Raw ADC values are not calibrated dB/dB(A).</p>
+        <form class="panel location-form record-form" id="observationForm" hidden>
+          <div class="panel-heading"><div><h2>Add an observation</h2><p>Use this for a manually recorded raw ADC reading or a verified test record.</p></div></div>
+          <label for="observationLocation">Location</label><select id="observationLocation"><option value="">Select a location</option></select>
+          <label for="observationDevice">Device</label><select id="observationDevice"><option value="">No device selected</option></select>
+          <label for="observationRawValue">Raw sensor reading (ADC 0–1023)</label><input id="observationRawValue" type="number" min="0" max="1023" step="1" required placeholder="e.g. 420">
+          <label for="observationTimestamp">Date and time (optional)</label><input id="observationTimestamp" type="datetime-local">
+          <button class="location-submit" id="observationSubmit" type="submit">Add observation</button><p class="location-form-message" id="observationFormMessage" role="status"></p>
+        </form>
+        <div class="firestore-location-list" id="observationList" aria-live="polite"></div>
+        <div class="panel empty-panel" id="observationEmpty"><span class="empty-icon">⌁</span><h2>No historical records yet</h2><p>Observations stored in Firestore will appear here. Sensor uploads are not connected until device integration is deployed and tested.</p></div>
+      </section>
+      <section class="page-content secondary-page" id="actions">
+        <div class="eyebrow">WORKSPACE</div><h1>Action Tracker</h1>
+        <p class="intro">Record awareness, follow-up, and responses. Only enter actions that have actually happened.</p>
+        <form class="panel location-form record-form" id="actionForm" hidden>
+          <div class="panel-heading"><div><h2>Add an action record</h2><p>Keep the action and its response status factual.</p></div></div>
+          <label for="actionDescription">Action taken</label><textarea id="actionDescription" rows="3" maxlength="600" required placeholder="Describe the action taken"></textarea>
+          <label for="actionDate">Date</label><input id="actionDate" type="date">
+          <label for="actionResponsible">Responsible person / team</label><input id="actionResponsible" maxlength="120" placeholder="e.g. Team Fearless">
+          <label for="actionStatus">Response status</label><select id="actionStatus"><option value="not_verified">Not verified</option><option value="pending">Pending</option><option value="response_received">Response received</option><option value="completed">Completed</option></select>
+          <label for="actionEvidence">Evidence link (optional)</label><input id="actionEvidence" type="url" maxlength="500" placeholder="https://...">
+          <button class="location-submit" id="actionSubmit" type="submit">Add action</button><p class="location-form-message" id="actionFormMessage" role="status"></p>
+        </form>
+        <div class="firestore-location-list" id="actionList" aria-live="polite"></div>
+        <div class="panel empty-panel" id="actionEmpty"><span class="empty-icon">✓</span><h2>No action records yet</h2><p>Actions entered by authorised team members will appear here.</p></div>
+      </section>
       <section class="page-content secondary-page" id="about"><div class="eyebrow">THE PROJECT</div><h1>About NoiseMap</h1><p class="intro">Making local sound observations easier to understand and act on.</p><div class="panel about-panel"><h2>Our approach</h2><p>NoiseMap is a Team Fearless NRL Changemakers project concept. The goal is to build a system that records observations at selected locations, presents trends over time, and helps the team document awareness and follow-up actions.</p><div class="about-note"><strong>Measurement integrity matters.</strong><p>An LM393 sound sensor provides threshold and analogue signal information; its raw readings are not calibrated sound-pressure measurements. NoiseMap will only display dB or dB(A) if suitable calibrated measurement hardware and a documented calibration method are implemented.</p></div></div></section>
     </main>
   </div>
