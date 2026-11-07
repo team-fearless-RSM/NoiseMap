@@ -76,3 +76,7 @@
 .staff-alert-actions .resolve-alert-button{background:#eef8f7;border-color:#d4ebe6;color:#14796f}
 .alert-footnote{max-width:850px;margin:16px 0;color:#8b9aa4;font-size:10px;line-height:1.7}
 @media(max-width:700px){.staff-alert-top{flex-direction:column}.staff-alert-status{align-self:flex-start}}
+
+/* Visitor counter */
+.visitor-stat-card{border-color:#cfe9e4;background:linear-gradient(145deg,#fff,#f2fbf9)}
+.visitor-stat-card .stat-value{color:#0d887d}
