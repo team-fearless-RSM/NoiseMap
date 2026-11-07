@@ -44,6 +44,9 @@
   let actionUnsubscribe = null;
   let cachedAlerts = [];
   let locationUnsubscribe = null;
+  let simulatorInterval = null;
+  let simulatorSessionId = null;
+  let simulatorReadingCount = 0;
 
   function connectVisitorCounter() {
     if (!window.NoiseMap || !window.NoiseMap.configured) return;
@@ -214,6 +217,9 @@
     canEditAlerts = Boolean(user && isEditor);
     canEditLocations = Boolean(user && isEditor);
     canManageRecords = Boolean(user && isEditor);
+    const simulatorPanel = document.getElementById('sensorSimulator');
+    if (simulatorPanel) simulatorPanel.hidden = !canManageRecords;
+    if (!canManageRecords) stopSensorSimulator('Simulator stopped. Sign in as an authorised team member to use test mode.');
     ["deviceForm", "observationForm", "actionForm"].forEach(id => {
       const form = document.getElementById(id);
       if (form) form.hidden = !canManageRecords;
@@ -540,11 +546,11 @@
   }
 
   function populateDeviceSelects(devices) {
-    ["observationDevice"].forEach(id => {
+    ["observationDevice", "simulatorDevice"].forEach(id => {
       const select = document.getElementById(id);
       if (!select) return;
       const previous = select.value;
-      select.innerHTML = '<option value="">No device selected</option>';
+      select.innerHTML = id === "simulatorDevice" ? '<option value="">Select a device</option>' : '<option value="">No device selected</option>';
       devices.forEach(device => {
         const option = document.createElement("option");
         option.value = device.id;
@@ -682,7 +688,7 @@
       list.appendChild(recordCard(
         location ? location.name : "Observation record",
         "Raw reading: " + (raw === undefined ? "not recorded" : raw + " ADC") + " · Device: " + (device ? device.deviceId : (observation.deviceId || "Not linked")),
-        "Recorded: " + formatAlertTime(dateValue),
+        (observation.isSimulated ? "SIMULATED TEST · " : "") + "Recorded: " + formatAlertTime(dateValue),
         "Observation", observation.id
       ));
     });
@@ -757,6 +763,79 @@
       }
     });
   }
+
+  function setSimulatorStatus(message) {
+    const status = document.getElementById("simulatorStatus");
+    if (status) status.textContent = message;
+  }
+
+  async function createSimulatedReading() {
+    if (!canManageRecords || !window.NoiseMap || !window.NoiseMap.configured) {
+      stopSensorSimulator("Simulator unavailable. Check team sign-in and Firebase connection.");
+      return;
+    }
+    const select = document.getElementById("simulatorDevice");
+    const device = cachedDevices.find(item => item.id === (select && select.value));
+    if (!device) {
+      setSimulatorStatus("Select a registered device before generating readings.");
+      return;
+    }
+    const rawValue = Math.floor(100 + Math.random() * 801);
+    try {
+      await window.NoiseMap.addObservation({
+        deviceId: device.id, locationId: device.locationId || null, rawValue,
+        measurementType: "raw_adc", unit: "ADC (0-1023)",
+        source: "browser_simulator", isSimulated: true, simulatorSessionId
+      });
+      simulatorReadingCount++;
+      setSimulatorStatus("Test reading " + simulatorReadingCount + " saved for " + (device.deviceId || "selected device") + ": " + rawValue + " ADC. This is simulated data.");
+    } catch (error) {
+      console.error("Could not save simulated reading:", error);
+      setSimulatorStatus(error.code === "permission-denied"
+        ? "Permission denied. Confirm team membership and Firestore observation write rules."
+        : "Could not save test reading. Check Firebase connection and try again.");
+      stopSensorSimulator();
+    }
+  }
+
+  function stopSensorSimulator(message) {
+    if (simulatorInterval) { clearInterval(simulatorInterval); simulatorInterval = null; }
+    const start = document.getElementById("simulatorStart");
+    const stop = document.getElementById("simulatorStop");
+    if (start) start.disabled = false;
+    if (stop) stop.disabled = true;
+    if (message) setSimulatorStatus(message);
+  }
+
+  function startSensorSimulator() {
+    if (!canManageRecords || simulatorInterval) return;
+    const select = document.getElementById("simulatorDevice");
+    if (!select || !cachedDevices.some(item => item.id === select.value)) {
+      setSimulatorStatus("Please select a registered device first.");
+      return;
+    }
+    simulatorSessionId = "sim_" + Date.now();
+    simulatorReadingCount = 0;
+    const start = document.getElementById("simulatorStart");
+    const stop = document.getElementById("simulatorStop");
+    if (start) start.disabled = true;
+    if (stop) stop.disabled = false;
+    setSimulatorStatus("Automatic test running. One simulated raw ADC reading will be saved every 5 seconds.");
+    createSimulatedReading();
+    simulatorInterval = setInterval(createSimulatedReading, 5000);
+  }
+
+  const simulatorOneButton = document.getElementById("simulatorOneReading");
+  const simulatorStartButton = document.getElementById("simulatorStart");
+  const simulatorStopButton = document.getElementById("simulatorStop");
+  if (simulatorOneButton) simulatorOneButton.addEventListener("click", () => {
+    if (!canManageRecords) return;
+    simulatorSessionId = "sim_" + Date.now();
+    simulatorReadingCount = 0;
+    createSimulatedReading();
+  });
+  if (simulatorStartButton) simulatorStartButton.addEventListener("click", startSensorSimulator);
+  if (simulatorStopButton) simulatorStopButton.addEventListener("click", () => stopSensorSimulator("Simulator stopped. Existing test readings remain saved in Historical Data."));
 
   wireRecordForm("deviceForm", "deviceSubmit", "Add device", "addDevice", () => ({
     deviceId: document.getElementById("deviceId").value.trim(),
