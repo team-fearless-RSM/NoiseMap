@@ -61,53 +61,30 @@
 
       <section class="page-content" id="overview">
         <div class="welcome-row">
-          <div><div class="eyebrow">TEAM FEARLESS <span>•</span> NRL CHANGEMAKERS</div><h1>Noise, made visible.</h1><p class="intro">A shared space to observe sound levels, understand patterns, and track community action.</p></div>
+          <div>
+            <div class="eyebrow">TEAM FEARLESS <span>•</span> NRL CHANGEMAKERS</div>
+            <h1>Noise, made visible.</h1>
+            <p class="intro">A shared space to observe sound levels, understand patterns, and track community action.</p>
+          </div>
           <div class="date-chip"><span>◷</span> <span id="todayLabel">Today</span></div>
         </div>
-
-        <div class="notice"><span class="notice-icon">i</span><div><strong>Demo mode is active</strong><p>The figures and chart below are sample data for the website preview. They are not live sensor readings or calibrated dB/dB(A) measurements. Firestore access is configured for public viewing and authorised team updates. Live sensor readings are not connected yet.</p></div><span class="demo-tag">SAMPLE DATA</span></div>
-
-        <div class="stats-grid">
-          <article class="stat-card"><div class="stat-top"><span>Monitored locations</span><span class="stat-icon teal">⌖</span></div><div class="stat-value">03</div><div class="stat-foot">Sample locations</div></article>
-          <article class="stat-card"><div class="stat-top"><span>Registered devices</span><span class="stat-icon blue">▣</span></div><div class="stat-value">01</div><div class="stat-foot">Prototype device planned</div></article>
-          <article class="stat-card"><div class="stat-top"><span>Observations today</span><span class="stat-icon violet">⌁</span></div><div class="stat-value">24</div><div class="stat-foot">Illustrative records</div></article>
-          <article class="stat-card"><div class="stat-top"><span>Open actions</span><span class="stat-icon amber">✓</span></div><div class="stat-value">02</div><div class="stat-foot">Sample action items</div></article>
-          <article class="stat-card visitor-stat-card" id="visitorStatCard" hidden><div class="stat-top"><span>Total website visits</span><span class="stat-icon teal">↗</span></div><div class="stat-value" id="visitorCount">—</div><div class="stat-foot" id="visitorCountStatus">Loading visit count…</div></article>
+        <div class="panel overview-empty">
+          <span class="empty-icon">⌁</span>
+          <h2>Your NoiseMap workspace is ready</h2>
+          <p>No monitoring records are displayed yet. Verified locations, registered devices, sensor observations, classroom alerts and completed actions will appear here as they are added.</p>
+          <p class="overview-note">Live sensor readings are not connected yet. NoiseMap will only show measured values after the device integration is tested. Raw ADC readings will not be labelled as dB or dB(A).</p>
         </div>
-
-        <div class="content-grid">
-          <article class="panel chart-panel">
-            <div class="panel-heading"><div><h2>Sound observations</h2><p>Illustrative activity across the day</p></div><span class="pill">DEMO · RAW INDEX</span></div>
-            <div class="chart-legend"><span><i></i> Sample sensor index</span><span class="legend-muted">Not dB / dB(A)</span></div>
-            <div class="chart-wrap"><canvas id="noiseChart" aria-label="Sample sound observation chart"></canvas></div>
-            <div class="chart-xlabels"><span>8 AM</span><span>10 AM</span><span>12 PM</span><span>2 PM</span><span>4 PM</span><span>6 PM</span></div>
-          </article>
-          <article class="panel location-panel">
-            <div class="panel-heading"><div><h2>Location overview</h2><p>Example monitoring points</p></div><a href="#locations" class="text-link">View all →</a></div>
-            <div class="location-list">
-              <div class="location-row"><span class="loc-pin mint">⌖</span><div class="loc-info"><strong>School Campus</strong><small>Sample location · Pune</small></div><span class="loc-state">Planned</span></div>
-              <div class="location-row"><span class="loc-pin sky">⌖</span><div class="loc-info"><strong>Main Road</strong><small>Sample location · Pune</small></div><span class="loc-state">Planned</span></div>
-              <div class="location-row"><span class="loc-pin peach">⌖</span><div class="loc-info"><strong>Community Area</strong><small>Sample location · Pune</small></div><span class="loc-state">Planned</span></div>
-            </div>
-          </article>
+        <div class="overview-links">
+          <a class="panel overview-link" href="#locations"><strong>Locations</strong><span>Manage monitoring sites →</span></a>
+          <a class="panel overview-link" href="#devices"><strong>Devices</strong><span>View registered devices →</span></a>
+          <a class="panel overview-link" href="#history"><strong>Historical Data</strong><span>View recorded observations →</span></a>
+          <a class="panel overview-link" href="#actions"><strong>Action Tracker</strong><span>Track verified actions →</span></a>
+          <a class="panel overview-link" href="#alerts"><strong>Staffroom Alerts</strong><span>View classroom alerts →</span></a>
         </div>
-
-        <div class="content-grid lower-grid">
-          <article class="panel">
-            <div class="panel-heading"><div><h2>Recent observations</h2><p>Example records for layout preview</p></div><a href="#history" class="text-link">View history →</a></div>
-            <div class="table-scroll"><table><thead><tr><th>LOCATION</th><th>TIME</th><th>OBSERVATION</th><th>TYPE</th></tr></thead><tbody>
-              <tr><td>School Campus</td><td>10:30 AM</td><td>Sample event</td><td><span class="table-tag">Demo</span></td></tr>
-              <tr><td>Main Road</td><td>12:15 PM</td><td>Sample event</td><td><span class="table-tag">Demo</span></td></tr>
-              <tr><td>Community Area</td><td>2:00 PM</td><td>Sample event</td><td><span class="table-tag">Demo</span></td></tr>
-            </tbody></table></div>
-          </article>
-          <article class="panel action-preview">
-            <div class="panel-heading"><div><h2>Action tracker</h2><p>Follow-up status</p></div><a href="#actions" class="text-link">Open →</a></div>
-            <div class="action-item"><span class="action-check">!</span><div><strong>Review observation log</strong><small>Sample task · Not submitted</small></div><span class="action-status pending">Pending</span></div>
-            <div class="action-item"><span class="action-check">!</span><div><strong>Plan community awareness</strong><small>Sample task · Not submitted</small></div><span class="action-status pending">Pending</span></div>
-          </article>
-        </div>
-        <footer class="footer"><span>NoiseMap · A Team Fearless project</span><span>Prototype preview · <a href="https://github.com/team-fearless-RSM/NoiseMap" target="_blank" rel="noreferrer">GitHub repository ↗</a></span></footer>
+        <footer class="footer">
+          <span>NoiseMap · A Team Fearless project</span>
+          <span><a href="https://github.com/team-fearless-RSM/NoiseMap" target="_blank" rel="noreferrer">GitHub repository ↗</a></span>
+        </footer>
       </section>
 
       <section class="page-content secondary-page" id="locations">
@@ -140,7 +117,7 @@
           <label for="alertLocation">Classroom</label>
           <select id="alertLocation" required><option value="">Select a classroom</option></select>
           <label for="alertRawAdc">Raw sensor reading (ADC 0–1023)</label>
-          <input id="alertRawAdc" type="number" min="0" max="1023" value="850" required>
+          <input id="alertRawAdc" type="number" min="0" max="1023" required>
           <button class="location-submit" id="alertTestSubmit" type="submit">Create test alert</button>
           <p class="location-form-message" id="alertTestMessage" role="status" aria-live="polite"></p>
         </form>
