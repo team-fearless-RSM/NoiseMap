@@ -32,6 +32,7 @@
   let alertUnsubscribe = null;
   let currentUser = null;
   let canEditAlerts = false;
+  let canEditLocations = false;
   let cachedAlerts = [];
   let locationUnsubscribe = null;
 
@@ -76,8 +77,9 @@
     if (alertTestForm) alertTestForm.hidden = !isEditor;
     setVisitorCounterVisibility(Boolean(user && isEditor));
     canEditAlerts = Boolean(user && isEditor);
+    canEditLocations = Boolean(user && isEditor);
+    renderLocations(cachedLocations);
     renderAlerts(cachedAlerts);
-    canEditAlerts = Boolean(user && isEditor);
   }
 
   if (teamSignInButton) teamSignInButton.addEventListener("click", () => showLogin(""));
@@ -106,6 +108,33 @@
       meta.textContent = location.status || "planned";
       details.append(name, description);
       row.append(details, meta);
+      if (canEditLocations) {
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "location-delete-button";
+        deleteButton.textContent = "Delete classroom";
+        deleteButton.setAttribute("aria-label", "Delete " + (location.name || "classroom"));
+        deleteButton.addEventListener("click", async () => {
+          const classroomName = location.name || "this classroom";
+          const confirmed = window.confirm(
+            'Delete "' + classroomName + '"? Only the classroom record will be deleted. Devices, observations, and alerts linked to it will remain.'
+          );
+          if (!confirmed) return;
+          deleteButton.disabled = true;
+          deleteButton.textContent = "Deleting…";
+          try {
+            await window.NoiseMap.deleteLocation(location.id);
+          } catch (error) {
+            console.error("Could not delete classroom:", error);
+            window.alert(error.code === "permission-denied"
+              ? "Permission denied. Sign in with an authorised Team Fearless account."
+              : "Could not delete this classroom. Please try again.");
+            deleteButton.disabled = false;
+            deleteButton.textContent = "Delete classroom";
+          }
+        });
+        row.appendChild(deleteButton);
+      }
       locationList.appendChild(row);
     });
   }
@@ -288,7 +317,7 @@
   if (locationForm) {
     locationForm.addEventListener("submit", async event => {
       event.preventDefault();
-      if (!currentUser) {
+      if (!canEditLocations) {
         if (locationFormMessage) locationFormMessage.textContent = "Sign in with an authorised team account first.";
         return;
       }
