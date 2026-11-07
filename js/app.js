@@ -636,7 +636,7 @@
         name.textContent = device.deviceId || "Unnamed device";
         const status = document.createElement("span");
         status.className = "device-monitor-status " + (isRecent ? "is-recent" : latest ? "is-stale" : "is-waiting");
-        status.textContent = isRecent ? "Recent reading" : latest ? "No recent reading" : "Awaiting data";
+        status.textContent = latest && latest.isSimulated ? "Simulated test" : isRecent ? "Recent reading" : latest ? "No recent reading" : "Awaiting data";
         top.append(name, status);
         const reading = document.createElement("div");
         reading.className = "device-monitor-reading";
