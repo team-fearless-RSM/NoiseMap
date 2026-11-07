@@ -205,7 +205,7 @@
       </section>
       <section class="page-content secondary-page" id="actions">
         <div class="eyebrow">WORKSPACE</div><h1>Action Tracker</h1>
-        <p class="intro">Record awareness, follow-up, and responses. Only enter actions that have actually happened.</p>
+        <p class="intro">Automatic recommendations appear when verified sensor alerts meet the escalation rules. Track the responsible person, response and outcome here.</p>
         <form class="panel location-form record-form" id="actionForm" hidden>
           <div class="panel-heading"><div><h2>Add an action record</h2><p>Keep the action and its response status factual.</p></div></div>
           <label for="actionDescription">Action taken</label><textarea id="actionDescription" rows="3" maxlength="600" required placeholder="Describe the action taken"></textarea>
@@ -216,7 +216,7 @@
           <button class="location-submit" id="actionSubmit" type="submit">Add action</button><p class="location-form-message" id="actionFormMessage" role="status"></p>
         </form>
         <div class="firestore-location-list" id="actionList" aria-live="polite"></div>
-        <div class="panel empty-panel" id="actionEmpty"><span class="empty-icon">✓</span><h2>No action records yet</h2><p>Actions entered by authorised team members will appear here.</p></div>
+        <div class="panel empty-panel" id="actionEmpty"><span class="empty-icon">✓</span><h2>No action recommendations yet</h2><p>Automatic recommendations will appear here after a verified device alert. Manual records can still be added for actions that have actually happened.</p></div>
       </section>
       <section class="page-content secondary-page" id="about"><div class="eyebrow">THE PROJECT</div><h1>About NoiseMap</h1><p class="intro">Making local sound observations easier to understand and act on.</p><div class="panel about-panel"><h2>Our approach</h2><p>NoiseMap is a Team Fearless NRL Changemakers project concept. The goal is to build a system that records observations at selected locations, presents trends over time, and helps the team document awareness and follow-up actions.</p><div class="about-note"><strong>Measurement integrity matters.</strong><p>An LM393 sound sensor provides threshold and analogue signal information; its raw readings are not calibrated sound-pressure measurements. NoiseMap will only display dB or dB(A) if suitable calibrated measurement hardware and a documented calibration method are implemented.</p></div></div></section>
     </main>
