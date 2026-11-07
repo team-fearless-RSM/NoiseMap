@@ -1,15 +1,21 @@
 const { onRequest } = require("firebase-functions/v2/https");
-const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const crypto = require("node:crypto");
 
 initializeApp();
 const db = getFirestore();
-const deviceApiKey = defineSecret("NOISEMAP_DEVICE_API_KEY");
 
 function send(res, status, body) {
   return res.status(status).json(body);
+}
+
+function validId(value) {
+  return typeof value === "string" && /^[A-Za-z0-9_-]{3,64}$/.test(value);
+}
+
+function validEpisodeId(value) {
+  return typeof value === "string" && /^[A-Za-z0-9_-]{6,64}$/.test(value);
 }
 
 function safeEqual(a, b) {
@@ -18,63 +24,68 @@ function safeEqual(a, b) {
   return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
-function validId(value) {
-  return typeof value === "string" && /^[A-Za-z0-9_-]{3,64}$/.test(value);
-}
-
 exports.ingestDeviceData = onRequest(
-  { region: "asia-south1", secrets: [deviceApiKey], cors: false, maxInstances: 3 },
+  { region: "asia-south1", cors: false, maxInstances: 3 },
   async (req, res) => {
     if (req.method !== "POST") {
       res.set("Allow", "POST");
       return send(res, 405, { ok: false, error: "POST only" });
     }
 
-    const authHeader = req.get("authorization") || "";
-    const suppliedKey = authHeader.startsWith("Bearer ")
-      ? authHeader.slice(7).trim()
-      : "";
-    if (!safeEqual(suppliedKey, deviceApiKey.value())) {
-      return send(res, 401, { ok: false, error: "Invalid device credential" });
-    }
-
     const data = req.body || {};
     const deviceId = data.device_id;
     const locationId = data.location_id;
-    const rawAdc = data.raw_adc;
-    const warningCount = data.warning_count;
-    const status = data.status;
-    const event = data.event || "observation";
-    const firmwareVersion = typeof data.firmware_version === "string"
-      ? data.firmware_version.slice(0, 32)
-      : "unknown";
 
     if (!validId(deviceId) || !validId(locationId)) {
       return send(res, 400, { ok: false, error: "Invalid device_id or location_id" });
     }
-    if (!Number.isInteger(rawAdc) || rawAdc < 0 || rawAdc > 1023) {
-      return send(res, 400, { ok: false, error: "raw_adc must be an integer from 0 to 1023" });
-    }
-    if (!Number.isInteger(warningCount) || warningCount < 0 || warningCount > 3) {
-      return send(res, 400, { ok: false, error: "warning_count must be an integer from 0 to 3" });
-    }
-    if (!["NOISE", "NORMAL"].includes(status)) {
-      return send(res, 400, { ok: false, error: "status must be NOISE or NORMAL" });
-    }
-    if (!["observation", "staffroom_alert", "warning_reset"].includes(event)) {
-      return send(res, 400, { ok: false, error: "Unsupported event" });
-    }
-    if (event === "staffroom_alert" && warningCount !== 3) {
-      return send(res, 400, { ok: false, error: "Staffroom alert requires warning_count 3" });
-    }
-    const episodeId = data.episode_id;
-    if (event === "staffroom_alert" &&
-        (typeof episodeId !== "string" || !/^[A-Za-z0-9_-]{6,64}$/.test(episodeId))) {
-      return send(res, 400, { ok: false, error: "episode_id is required for staffroom alerts" });
+
+    const authHeader = req.get("authorization") || "";
+    const suppliedToken = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7).trim()
+      : "";
+    if (suppliedToken.length < 32 || suppliedToken.length > 256) {
+      return send(res, 401, { ok: false, error: "Missing or invalid device credential" });
     }
 
     try {
-      // Device records are created by authorised team members in the NoiseMap dashboard.
+      // Only the SHA-256 hash is stored in Firestore. The raw token stays on the device.
+      const secretDoc = await db.collection("deviceSecrets").doc(deviceId).get();
+      if (!secretDoc.exists) {
+        return send(res, 401, { ok: false, error: "Device credential is not registered" });
+      }
+      const suppliedHash = crypto.createHash("sha256").update(suppliedToken).digest("hex");
+      if (!safeEqual(suppliedHash, secretDoc.data().tokenHash)) {
+        return send(res, 401, { ok: false, error: "Invalid device credential" });
+      }
+
+      const rawAdc = data.raw_adc;
+      const warningCount = data.warning_count;
+      const status = data.status;
+      const event = data.event || "observation";
+      const firmwareVersion = typeof data.firmware_version === "string"
+        ? data.firmware_version.slice(0, 32)
+        : "unknown";
+      const episodeId = data.episode_id;
+
+      if (!Number.isInteger(rawAdc) || rawAdc < 0 || rawAdc > 1023) {
+        return send(res, 400, { ok: false, error: "raw_adc must be an integer from 0 to 1023" });
+      }
+      if (!Number.isInteger(warningCount) || warningCount < 0 || warningCount > 3) {
+        return send(res, 400, { ok: false, error: "warning_count must be an integer from 0 to 3" });
+      }
+      if (!["NOISE", "NORMAL"].includes(status)) {
+        return send(res, 400, { ok: false, error: "status must be NOISE or NORMAL" });
+      }
+      if (!["observation", "staffroom_alert", "warning_reset"].includes(event)) {
+        return send(res, 400, { ok: false, error: "Unsupported event" });
+      }
+      if (event === "staffroom_alert" &&
+          (warningCount !== 3 || !validEpisodeId(episodeId))) {
+        return send(res, 400, { ok: false, error: "Staffroom alert requires warning_count 3 and a valid episode_id" });
+      }
+
+      // A registered device must be assigned to the exact location it reports.
       const deviceQuery = await db.collection("devices")
         .where("deviceId", "==", deviceId)
         .limit(2)
@@ -83,8 +94,7 @@ exports.ingestDeviceData = onRequest(
         return send(res, 403, { ok: false, error: "Device is not registered uniquely" });
       }
 
-      const deviceDoc = deviceQuery.docs[0];
-      const device = deviceDoc.data();
+      const device = deviceQuery.docs[0].data();
       if (device.locationId !== locationId) {
         return send(res, 403, { ok: false, error: "Device is not assigned to this location" });
       }
@@ -95,7 +105,7 @@ exports.ingestDeviceData = onRequest(
       }
 
       const timestamp = FieldValue.serverTimestamp();
-      const observation = {
+      const observationRef = await db.collection("observations").add({
         deviceId,
         locationId,
         timestamp,
@@ -107,8 +117,7 @@ exports.ingestDeviceData = onRequest(
         source: "esp8266",
         firmwareVersion,
         createdAt: timestamp
-      };
-      const observationRef = await db.collection("observations").add(observation);
+      });
 
       let alertCreated = false;
       if (event === "staffroom_alert") {
