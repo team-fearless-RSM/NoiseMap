@@ -73,6 +73,22 @@
           <div class="stat-value" id="visitorCount">—</div>
           <div class="stat-foot" id="visitorCountStatus">Loading visit count…</div>
         </div>
+        <section class="visitor-analytics" id="visitorAnalytics" hidden aria-label="Website visit analytics">
+          <div class="analytics-heading">
+            <div><h2>Visitor analytics</h2><p>Recorded website page loads · India time</p></div>
+            <span class="analytics-live">LIVE</span>
+          </div>
+          <div class="analytics-stat-grid">
+            <article class="stat-card"><div class="stat-top"><span>Today</span><span class="stat-icon teal">●</span></div><div class="stat-value" id="visitsToday">—</div><div class="stat-foot">Since midnight</div></article>
+            <article class="stat-card"><div class="stat-top"><span>Last 7 days</span><span class="stat-icon blue">▥</span></div><div class="stat-value" id="visitsWeek">—</div><div class="stat-foot">Including today</div></article>
+            <article class="stat-card"><div class="stat-top"><span>This month</span><span class="stat-icon violet">▦</span></div><div class="stat-value" id="visitsMonth">—</div><div class="stat-foot">Calendar month to date</div></article>
+          </div>
+          <div class="panel analytics-chart-panel">
+            <div class="panel-heading"><div><h2>Daily visits · Last 7 days</h2><p>New daily records begin after analytics is enabled</p></div></div>
+            <div class="analytics-bars" id="visitorDailyChart" role="img" aria-label="Daily website visits for the last seven days"></div>
+          </div>
+          <p class="analytics-footnote" id="visitorAnalyticsStatus">Loading daily analytics…</p>
+        </section>
         <div class="panel overview-empty">
           <span class="empty-icon">⌁</span>
           <h2>Your NoiseMap workspace is ready</h2>
