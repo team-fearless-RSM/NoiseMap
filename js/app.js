@@ -701,10 +701,23 @@
     list.innerHTML = "";
     if (empty) empty.hidden = actions.length > 0;
     actions.forEach(action => {
+      const automatic = action.source === "automatic_rule";
+      const title = automatic
+        ? "AUTOMATED RECOMMENDATION · " + (action.priority === "high" ? "HIGH PRIORITY" : "ACTION")
+        : "Action record";
+      const description = action.recommendation || action.description || "Action record";
+      const status = action.responseStatus || "not verified";
+      const notification = automatic
+        ? " · Notification: " + (action.notificationStatus === "in_app_alert_created" ? "In-app staff alert created; external delivery not configured" : "Not sent")
+        : "";
       list.appendChild(recordCard(
-        action.description || "Action record",
-        "Responsible: " + (action.responsible || "Not assigned") + " · Status: " + (action.responseStatus || "not verified"),
-        "Action date: " + (action.actionDate || "Not recorded") + (action.evidenceUrl ? " · Evidence: " + action.evidenceUrl : ""),
+        title,
+        description + " · Responsible: " + (action.responsible || "Not assigned") + " · Status: " + status,
+        "Action date: " + (action.actionDate || "Awaiting response") +
+          (action.locationId ? " · Location: " + action.locationId : "") +
+          (action.deviceId ? " · Device: " + action.deviceId : "") +
+          notification +
+          (action.evidenceUrl ? " · Evidence: " + action.evidenceUrl : ""),
         "Action", action.id
       ));
     });
