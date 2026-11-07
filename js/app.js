@@ -17,6 +17,15 @@
   const locationForm = document.getElementById("locationForm");
   const locationFormMessage = document.getElementById("locationFormMessage");
   const locationSubmit = document.getElementById("locationSubmit");
+  const alertList = document.getElementById("staffroomAlertList");
+  const alertsEmpty = document.getElementById("alertsEmpty");
+  const alertStatusLine = document.getElementById("alertConnectionStatus");
+  const alertTestForm = document.getElementById("alertTestForm");
+  const alertLocationSelect = document.getElementById("alertLocation");
+  const alertTestSubmit = document.getElementById("alertTestSubmit");
+  const alertTestMessage = document.getElementById("alertTestMessage");
+  let cachedLocations = [];
+  let alertUnsubscribe = null;
   let currentUser = null;
   let locationUnsubscribe = null;
 
@@ -33,6 +42,7 @@
     if (teamSignInButton) teamSignInButton.hidden = Boolean(user);
     if (signOutButton) signOutButton.hidden = !user;
     if (locationForm) locationForm.hidden = !isEditor;
+    if (alertTestForm) alertTestForm.hidden = !isEditor;
   }
 
   if (teamSignInButton) teamSignInButton.addEventListener("click", () => showLogin(""));
@@ -70,6 +80,8 @@
     if (locationStatus) locationStatus.textContent = "Loading locations from Firestore…";
     if (locationUnsubscribe) locationUnsubscribe();
     locationUnsubscribe = window.NoiseMap.subscribeLocations(locations => {
+      cachedLocations = locations;
+      populateAlertLocations(locations);
       renderLocations(locations);
       if (locationStatus) locationStatus.textContent = locations.length
         ? "Live Firestore data · " + locations.length + " location(s)"
@@ -82,6 +94,7 @@
 
   if (window.NoiseMap && window.NoiseMap.configured) {
     connectLocations();
+    connectAlerts();
     window.NoiseMap.onAuthStateChanged(async user => {
       currentUser = user;
       let isEditor = false;
@@ -97,6 +110,142 @@
   } else {
     showWorkspace(null, false);
     if (locationStatus) locationStatus.textContent = "Firebase is not configured.";
+  }
+
+
+  function populateAlertLocations(locations) {
+    if (!alertLocationSelect) return;
+    const previous = alertLocationSelect.value;
+    alertLocationSelect.innerHTML = '<option value="">Select a classroom</option>';
+    locations.forEach(location => {
+      const option = document.createElement("option");
+      option.value = location.id;
+      option.textContent = location.name || "Unnamed classroom";
+      option.dataset.name = location.name || "Unnamed classroom";
+      alertLocationSelect.appendChild(option);
+    });
+    if (previous && locations.some(location => location.id === previous)) alertLocationSelect.value = previous;
+  }
+
+  function formatAlertTime(value) {
+    if (!value) return "Time pending";
+    const date = typeof value.toDate === "function" ? value.toDate() : new Date(value);
+    if (Number.isNaN(date.getTime())) return "Time unavailable";
+    return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(date);
+  }
+
+  function renderAlerts(alerts) {
+    if (!alertList) return;
+    alertList.innerHTML = "";
+    if (alertsEmpty) alertsEmpty.hidden = alerts.length > 0;
+    alerts.forEach(alert => {
+      const card = document.createElement("article");
+      card.className = "staff-alert-card" + (alert.status === "resolved" ? " is-resolved" : "");
+      const top = document.createElement("div");
+      top.className = "staff-alert-top";
+      const heading = document.createElement("div");
+      const name = document.createElement("h3");
+      name.textContent = alert.classroomName || "Unknown classroom";
+      const time = document.createElement("p");
+      time.textContent = formatAlertTime(alert.createdAt);
+      heading.append(name, time);
+      const status = document.createElement("span");
+      status.className = "staff-alert-status " + (alert.status || "open");
+      status.textContent = alert.status === "acknowledged" ? "Acknowledged" : alert.status === "resolved" ? "Resolved" : "Needs attention";
+      top.append(heading, status);
+      const detail = document.createElement("p");
+      detail.className = "staff-alert-detail";
+      detail.textContent = "Noise remained high after " + Number(alert.warningCount || 3) + " warnings · Raw sensor reading: " +
+        (Number.isFinite(Number(alert.rawAdc)) ? alert.rawAdc + " ADC" : "not recorded") +
+        (alert.source === "manual_test" ? " · TEST ALERT" : "");
+      card.append(top, detail);
+      if (currentUser && alert.status !== "resolved") {
+        const actions = document.createElement("div");
+        actions.className = "staff-alert-actions";
+        if (alert.status !== "acknowledged") {
+          const acknowledge = document.createElement("button");
+          acknowledge.type = "button";
+          acknowledge.textContent = "Acknowledge";
+          acknowledge.addEventListener("click", () => changeAlertStatus(alert.id, "acknowledged", acknowledge));
+          actions.appendChild(acknowledge);
+        }
+        const resolve = document.createElement("button");
+        resolve.type = "button";
+        resolve.className = "resolve-alert-button";
+        resolve.textContent = "Mark resolved";
+        resolve.addEventListener("click", () => changeAlertStatus(alert.id, "resolved", resolve));
+        actions.appendChild(resolve);
+        card.appendChild(actions);
+      }
+      alertList.appendChild(card);
+    });
+  }
+
+  async function changeAlertStatus(id, status, button) {
+    if (!currentUser || !window.NoiseMap) return;
+    button.disabled = true;
+    try {
+      await window.NoiseMap.updateAlertStatus(id, status);
+    } catch (error) {
+      console.error("Could not update alert:", error);
+      window.alert("Could not update this alert. Check your team permissions and Firestore rules.");
+      button.disabled = false;
+    }
+  }
+
+  function connectAlerts() {
+    if (!window.NoiseMap || !window.NoiseMap.configured || !alertList) return;
+    if (alertStatusLine) alertStatusLine.textContent = "Loading staffroom alerts…";
+    if (alertUnsubscribe) alertUnsubscribe();
+    alertUnsubscribe = window.NoiseMap.subscribeAlerts(alerts => {
+      renderAlerts(alerts);
+      if (alertStatusLine) alertStatusLine.textContent = "Live dashboard · " + alerts.length + " alert record(s)";
+    }, error => {
+      console.error("Could not load staffroom alerts:", error);
+      if (alertStatusLine) alertStatusLine.textContent = "Could not load alerts. Check the Firestore alerts rule.";
+    });
+  }
+
+  if (alertTestForm) {
+    alertTestForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!currentUser) {
+        if (alertTestMessage) alertTestMessage.textContent = "Sign in with an authorised team account first.";
+        return;
+      }
+      const locationId = alertLocationSelect.value;
+      const location = cachedLocations.find(item => item.id === locationId);
+      const rawAdc = Number(document.getElementById("alertRawAdc").value);
+      if (!location) {
+        if (alertTestMessage) alertTestMessage.textContent = "Add and select a classroom location first.";
+        return;
+      }
+      if (!Number.isInteger(rawAdc) || rawAdc < 0 || rawAdc > 1023) {
+        if (alertTestMessage) alertTestMessage.textContent = "Enter a raw ADC value from 0 to 1023.";
+        return;
+      }
+      alertTestSubmit.disabled = true;
+      alertTestSubmit.textContent = "Creating…";
+      if (alertTestMessage) alertTestMessage.textContent = "";
+      try {
+        await window.NoiseMap.addAlert({
+          locationId,
+          classroomName: location.name,
+          rawAdc,
+          warningCount: 3,
+          source: "manual_test"
+        });
+        if (alertTestMessage) alertTestMessage.textContent = "Test alert created. It is now visible on the staffroom dashboard.";
+      } catch (error) {
+        console.error("Could not create test alert:", error);
+        if (alertTestMessage) alertTestMessage.textContent = error.code === "permission-denied"
+          ? "Permission denied. Check the Firestore alerts rule and teamMembers UID."
+          : "Could not create the test alert. Please try again.";
+      } finally {
+        alertTestSubmit.disabled = false;
+        alertTestSubmit.textContent = "Create test alert";
+      }
+    });
   }
 
   if (locationForm) {
