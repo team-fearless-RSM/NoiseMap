@@ -1,11 +1,19 @@
 /*
  * NoiseMap Firebase client bootstrap.
- * Replace the placeholder config with the Firebase Web App config from:
+ * Replace every placeholder below with the Firebase Web App config from:
  * Firebase Console > Project settings > Your apps > SDK setup.
- *
  * This is client-side configuration, NOT a service-account key.
- * Never place Admin SDK credentials or private keys in this file.
+ * Never place Admin SDK credentials or private keys in browser code.
  */
+window.NOISEMAP_FIREBASE_CONFIG = {
+  apiKey: "REPLACE_WITH_FIREBASE_WEB_API_KEY",
+  authDomain: "REPLACE_WITH_PROJECT_ID.firebaseapp.com",
+  projectId: "REPLACE_WITH_PROJECT_ID",
+  storageBucket: "REPLACE_WITH_PROJECT_ID.firebasestorage.app",
+  messagingSenderId: "REPLACE_WITH_SENDER_ID",
+  appId: "REPLACE_WITH_WEB_APP_ID"
+};
+
 (function () {
   const config = window.NOISEMAP_FIREBASE_CONFIG || {};
   const configured = Boolean(config.apiKey && config.projectId && config.appId &&
@@ -13,9 +21,7 @@
 
   if (!configured || !window.firebase) {
     window.NoiseMap = {
-      configured: false,
-      auth: null,
-      db: null,
+      configured: false, auth: null, db: null,
       signIn: async () => { throw new Error("Firebase is not configured yet. Add your Firebase Web App config first."); },
       signOut: async () => {},
       addObservation: async () => { throw new Error("Firebase is not configured yet."); },
@@ -31,9 +37,7 @@
   const db = firebase.firestore();
 
   window.NoiseMap = {
-    configured: true,
-    auth,
-    db,
+    configured: true, auth, db,
     signIn: (email, password) => auth.signInWithEmailAndPassword(email.trim(), password),
     signOut: () => auth.signOut(),
     onAuthStateChanged: callback => auth.onAuthStateChanged(callback),
