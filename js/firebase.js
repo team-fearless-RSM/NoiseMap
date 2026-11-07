@@ -60,16 +60,11 @@ window.NOISEMAP_FIREBASE_CONFIG = {
     },
     incrementVisitorCount: async () => {
       const ref = db.collection("siteStats").doc("visitorCounter");
-      return db.runTransaction(async transaction => {
-        const snapshot = await transaction.get(ref);
-        if (!snapshot.exists) {
-          transaction.set(ref, { count: 1, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-          return 1;
-        }
-        const nextCount = Number(snapshot.data().count || 0) + 1;
-        transaction.update(ref, { count: nextCount, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        return nextCount;
-      });
+      // Atomic increment: does not need a public read of the counter document.
+      return ref.set({
+        count: firebase.firestore.FieldValue.increment(1),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
     },
     subscribeVisitorCount: (onData, onError) => db.collection("siteStats").doc("visitorCounter")
       .onSnapshot(snapshot => onData(snapshot.exists ? Number(snapshot.data().count || 0) : 0), onError),
