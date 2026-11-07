@@ -29,7 +29,9 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       updateAlertStatus: async () => { throw new Error("Firebase is not configured yet."); },
       addLocation: async () => { throw new Error("Firebase is not configured yet."); },
       addDevice: async () => { throw new Error("Firebase is not configured yet."); },
-      addAction: async () => { throw new Error("Firebase is not configured yet."); }
+      addAction: async () => { throw new Error("Firebase is not configured yet."); },
+      incrementVisitorCount: async () => { throw new Error("Firebase is not configured yet."); },
+      subscribeVisitorCount: () => () => {}
     };
     return;
   }
@@ -48,6 +50,21 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       const member = await db.collection("teamMembers").doc(uid).get();
       return member.exists;
     },
+    incrementVisitorCount: async () => {
+      const ref = db.collection("siteStats").doc("visitorCounter");
+      return db.runTransaction(async transaction => {
+        const snapshot = await transaction.get(ref);
+        if (!snapshot.exists) {
+          transaction.set(ref, { count: 1, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+          return 1;
+        }
+        const nextCount = Number(snapshot.data().count || 0) + 1;
+        transaction.update(ref, { count: nextCount, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        return nextCount;
+      });
+    },
+    subscribeVisitorCount: (onData, onError) => db.collection("siteStats").doc("visitorCounter")
+      .onSnapshot(snapshot => onData(snapshot.exists ? Number(snapshot.data().count || 0) : 0), onError),
     subscribeAlerts: (onData, onError) => db.collection("alerts").orderBy("createdAt", "desc").limit(100)
       .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
     addAlert: data => db.collection("alerts").add({
