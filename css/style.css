@@ -48,6 +48,10 @@
 .firestore-location-details{min-width:0}
 .firestore-location-details h3{font:700 13px Manrope,sans-serif;color:#294354;margin:0 0 6px}
 .firestore-location-details p{font-size:11px;color:#788994;line-height:1.6;margin:0}
+
+.location-delete-button{flex:none;border:0;border-radius:7px;background:var(--navy);color:#fff;padding:10px 16px;font:700 11px "DM Sans",sans-serif;cursor:pointer}
+.location-delete-button:hover{background:#1b4058}
+.location-delete-button:disabled{opacity:.6;cursor:wait}
 .firestore-location-status{font-size:9px;text-transform:capitalize;background:#eef6f5;color:#167d75;border-radius:5px;padding:5px 7px;white-space:nowrap}
 #locationEmpty{margin-top:12px}
 @media(max-width:700px){.firestore-location-list{grid-template-columns:1fr}}
