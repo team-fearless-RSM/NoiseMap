@@ -596,18 +596,75 @@
   function renderDevices(devices) {
     const list = document.getElementById("deviceList");
     const empty = document.getElementById("deviceEmpty");
+    const monitorGrid = document.getElementById("deviceMonitorGrid");
+    const totalEl = document.getElementById("deviceTotal");
+    const recentEl = document.getElementById("deviceRecent");
+    const waitingEl = document.getElementById("deviceWaiting");
+    const noteEl = document.getElementById("deviceMonitorNote");
     if (!list) return;
     list.innerHTML = "";
     if (empty) empty.hidden = devices.length > 0;
+    if (monitorGrid) monitorGrid.innerHTML = "";
+    let recentCount = 0;
+    const now = Date.now();
+    const recentWindowMs = 5 * 60 * 1000;
+
     devices.forEach(device => {
       const location = cachedLocations.find(item => item.id === device.locationId);
+      const latest = cachedObservations.find(item => item.deviceId === device.id);
+      const raw = latest ? (latest.rawValue ?? latest.rawAdc ?? latest.raw_adc) : null;
+      const timeValue = latest && (latest.timestamp || latest.createdAt);
+      const readingDate = timeValue
+        ? (typeof timeValue.toDate === "function" ? timeValue.toDate() : new Date(timeValue))
+        : null;
+      const ageMs = readingDate && !Number.isNaN(readingDate.getTime()) ? now - readingDate.getTime() : Infinity;
+      const isRecent = ageMs >= 0 && ageMs <= recentWindowMs;
+      if (isRecent) recentCount++;
+
+      if (monitorGrid) {
+        const card = document.createElement("article");
+        card.className = "device-monitor-card";
+        const top = document.createElement("div");
+        top.className = "device-monitor-card-top";
+        const name = document.createElement("h3");
+        name.textContent = device.deviceId || "Unnamed device";
+        const status = document.createElement("span");
+        status.className = "device-monitor-status " + (isRecent ? "is-recent" : latest ? "is-stale" : "is-waiting");
+        status.textContent = isRecent ? "Recent reading" : latest ? "No recent reading" : "Awaiting data";
+        top.append(name, status);
+        const reading = document.createElement("div");
+        reading.className = "device-monitor-reading";
+        reading.textContent = raw === null || raw === undefined ? "—" : String(raw);
+        const unit = document.createElement("span");
+        unit.className = "device-monitor-unit";
+        unit.textContent = "RAW ADC · 0–1023";
+        const locationText = document.createElement("p");
+        locationText.className = "device-monitor-meta";
+        locationText.textContent = "Location: " + (location ? location.name : "Not linked");
+        const lastSeen = document.createElement("p");
+        lastSeen.className = "device-monitor-meta";
+        lastSeen.textContent = "Last reading: " + (latest ? formatAlertTime(timeValue) : "No reading recorded");
+        const hardware = document.createElement("p");
+        hardware.className = "device-monitor-meta";
+        hardware.textContent = "Hardware: " + (device.hardware || "Not specified");
+        card.append(top, reading, unit, locationText, lastSeen, hardware);
+        monitorGrid.appendChild(card);
+      }
+
       list.appendChild(recordCard(
         device.deviceId || "Unnamed device",
         device.hardware || "Hardware not specified",
-        "Location: " + (location ? location.name : "Not linked") + " · Status: " + (device.connectionStatus || "unknown"),
+        "Location: " + (location ? location.name : "Not linked") + " · Registered status: " + (device.connectionStatus || "unknown"),
         "Device", device.id
       ));
     });
+
+    if (totalEl) totalEl.textContent = String(devices.length);
+    if (recentEl) recentEl.textContent = String(recentCount);
+    if (waitingEl) waitingEl.textContent = String(devices.length - recentCount);
+    if (noteEl) noteEl.textContent = devices.length
+      ? "A recent reading means an observation was saved within the last 5 minutes. This is not proof of a continuous device connection. ADC values are raw readings, not dB/dB(A)."
+      : "No devices are registered yet. Add a device below to begin tracking its saved observations.";
     populateDeviceSelects(devices);
   }
 
@@ -661,6 +718,7 @@
     observationUnsubscribe = window.NoiseMap.subscribeObservations(items => {
       cachedObservations = items;
       renderObservations(items);
+      renderDevices(cachedDevices);
     }, error => console.error("Could not load observations:", error));
   }
 
