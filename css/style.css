@@ -32,3 +32,22 @@
 .team-login-button,.public-view-button{border:1px solid #dce7eb;background:#fff;color:#167d75;border-radius:7px;padding:8px 11px;font:600 11px "DM Sans",sans-serif;cursor:pointer}
 .team-login-button:hover,.public-view-button:hover{background:#eef8f7}
 .public-view-button{margin-top:14px;width:100%}
+
+
+/* Firestore-backed locations */
+.location-status-line{font-size:11px;color:#82939e;margin:18px 0}
+.location-form{max-width:720px;margin:0 0 20px;display:grid;gap:9px}
+.location-form label{font-size:10px;font-weight:700;color:#526978;margin-top:4px}
+.location-form input,.location-form textarea,.location-form select{width:100%;border:1px solid #dce5ea;border-radius:7px;padding:10px 11px;font:12px "DM Sans",sans-serif;color:var(--ink);background:#fff}
+.location-form input:focus,.location-form textarea:focus,.location-form select:focus{outline:2px solid rgba(22,168,153,.18);border-color:var(--teal)}
+.location-submit{justify-self:start;border:0;border-radius:7px;background:var(--navy);color:#fff;padding:10px 16px;font:700 11px "DM Sans",sans-serif;cursor:pointer}
+.location-submit:disabled{opacity:.6;cursor:wait}
+.location-form-message{min-height:15px;margin:0;color:#167d75;font-size:10px}
+.firestore-location-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.firestore-location-card{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:17px;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:var(--shadow)}
+.firestore-location-details{min-width:0}
+.firestore-location-details h3{font:700 13px Manrope,sans-serif;color:#294354;margin:0 0 6px}
+.firestore-location-details p{font-size:11px;color:#788994;line-height:1.6;margin:0}
+.firestore-location-status{font-size:9px;text-transform:capitalize;background:#eef6f5;color:#167d75;border-radius:5px;padding:5px 7px;white-space:nowrap}
+#locationEmpty{margin-top:12px}
+@media(max-width:700px){.firestore-location-list{grid-template-columns:1fr}}
