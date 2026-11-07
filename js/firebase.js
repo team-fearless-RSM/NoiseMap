@@ -1,17 +1,16 @@
 /*
  * NoiseMap Firebase client bootstrap.
- * Replace every placeholder below with the Firebase Web App config from:
- * Firebase Console > Project settings > Your apps > SDK setup.
  * This is client-side configuration, NOT a service-account key.
  * Never place Admin SDK credentials or private keys in browser code.
  */
 window.NOISEMAP_FIREBASE_CONFIG = {
-  apiKey: "REPLACE_WITH_FIREBASE_WEB_API_KEY",
-  authDomain: "REPLACE_WITH_PROJECT_ID.firebaseapp.com",
-  projectId: "REPLACE_WITH_PROJECT_ID",
-  storageBucket: "REPLACE_WITH_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "REPLACE_WITH_SENDER_ID",
-  appId: "REPLACE_WITH_WEB_APP_ID"
+  apiKey: "AIzaSyB4lCjYfc6TDeBEXV6YmlYMot4Giyjjy9Q",
+  authDomain: "noisemap-ead56.firebaseapp.com",
+  projectId: "noisemap-ead56",
+  storageBucket: "noisemap-ead56.firebasestorage.app",
+  messagingSenderId: "48050644121",
+  appId: "1:48050644121:web:fc1d3a4fd572edaf1e8408",
+  measurementId: "G-QQMQ6P3FN8"
 };
 
 (function () {
