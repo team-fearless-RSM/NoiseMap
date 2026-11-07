@@ -101,10 +101,7 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       status: "open",
       source: data.source || "manual_test",
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdBy: auth.currentUser.uid,
-      source: data.source || "manual",
-      isSimulated: Boolean(data.isSimulated),
-      simulatorSessionId: data.simulatorSessionId || null
+      createdBy: auth.currentUser.uid
     }),
     updateAlertStatus: (alertId, status) => {
       if (!["acknowledged", "resolved"].includes(status)) throw new Error("Invalid alert status.");
@@ -161,7 +158,10 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       unit: data.unit || "ADC (0-1023)",
       calibration: data.calibration || null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdBy: auth.currentUser.uid
+      createdBy: auth.currentUser.uid,
+      source: data.source || "manual",
+      isSimulated: Boolean(data.isSimulated),
+      simulatorSessionId: data.simulatorSessionId || null
     }),
     subscribeActions: (onData, onError) => db.collection("actions").orderBy("createdAt", "desc").limit(300)
       .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
