@@ -115,31 +115,85 @@
     if (weekEl) weekEl.textContent = format(week);
     if (monthEl) monthEl.textContent = format(month);
 
-    const chart = document.getElementById("visitorDailyChart");
-    if (!chart) return;
-    chart.innerHTML = "";
-    const max = Math.max(1, ...lastSevenKeys.map(key => Number(dailyCounts[key] || 0)));
-    lastSevenKeys.forEach(key => {
-      const count = Number(dailyCounts[key] || 0);
-      const column = document.createElement("div");
-      column.className = "analytics-bar-column";
-      const value = document.createElement("span");
-      value.className = "analytics-bar-value";
-      value.textContent = format(count);
-      const track = document.createElement("div");
-      track.className = "analytics-bar-track";
-      const bar = document.createElement("div");
-      bar.className = "analytics-bar";
-      bar.style.height = (count ? Math.max(5, count / max * 100) : 0) + "%";
-      track.appendChild(bar);
-      const label = document.createElement("span");
-      label.className = "analytics-bar-label";
-      label.textContent = new Intl.DateTimeFormat("en-IN", {
-        timeZone: "UTC", day: "numeric", month: "short"
-      }).format(new Date(key + "T12:00:00Z"));
-      column.append(value, track, label);
-      chart.appendChild(column);
+    const dailyChart = document.getElementById("visitorDailyChart");
+    if (dailyChart) {
+      dailyChart.innerHTML = "";
+      const max = Math.max(1, ...lastSevenKeys.map(key => Number(dailyCounts[key] || 0)));
+      lastSevenKeys.forEach(key => {
+        const count = Number(dailyCounts[key] || 0);
+        const column = document.createElement("div");
+        column.className = "analytics-bar-column";
+        const value = document.createElement("span");
+        value.className = "analytics-bar-value";
+        value.textContent = format(count);
+        const track = document.createElement("div");
+        track.className = "analytics-bar-track";
+        const bar = document.createElement("div");
+        bar.className = "analytics-bar";
+        bar.style.height = (count ? Math.max(5, count / max * 100) : 0) + "%";
+        track.appendChild(bar);
+        const label = document.createElement("span");
+        label.className = "analytics-bar-label";
+        label.textContent = new Intl.DateTimeFormat("en-IN", {
+          timeZone: "UTC", day: "numeric", month: "short"
+        }).format(new Date(key + "T12:00:00Z"));
+        column.append(value, track, label);
+        dailyChart.appendChild(column);
+      });
+    }
+
+    // Aggregate daily records into calendar months for the rolling 12-month view.
+    const [year, monthNumber] = todayKey.split("-").map(Number);
+    const monthKeys = Array.from({ length: 12 }, (_, index) => {
+      const date = new Date(Date.UTC(year, monthNumber - 1 - (11 - index), 1));
+      return date.toISOString().slice(0, 7);
     });
+    const monthTotals = monthKeys.map(monthKey => ({
+      key: monthKey,
+      count: Object.entries(dailyCounts).reduce((sum, [dayKey, value]) =>
+        dayKey.startsWith(monthKey) ? sum + Number(value || 0) : sum, 0)
+    }));
+    const monthlyChart = document.getElementById("visitorMonthlyChart");
+    if (monthlyChart) {
+      monthlyChart.innerHTML = "";
+      const monthlyMax = Math.max(1, ...monthTotals.map(item => item.count));
+      monthTotals.forEach(item => {
+        const column = document.createElement("div");
+        column.className = "analytics-bar-column";
+        const value = document.createElement("span");
+        value.className = "analytics-bar-value";
+        value.textContent = format(item.count);
+        const track = document.createElement("div");
+        track.className = "analytics-bar-track";
+        const bar = document.createElement("div");
+        bar.className = "analytics-bar";
+        bar.style.height = (item.count ? Math.max(5, item.count / monthlyMax * 100) : 0) + "%";
+        track.appendChild(bar);
+        const label = document.createElement("span");
+        label.className = "analytics-bar-label";
+        label.textContent = new Intl.DateTimeFormat("en-IN", {
+          timeZone: "UTC", month: "short", year: "2-digit"
+        }).format(new Date(item.key + "-15T12:00:00Z"));
+        column.append(value, track, label);
+        monthlyChart.appendChild(column);
+      });
+    }
+
+    const previousMonthDate = new Date(Date.UTC(year, monthNumber - 2, 1));
+    const previousMonthKey = previousMonthDate.toISOString().slice(0, 7);
+    const previousMonthTotal = monthTotals.find(item => item.key === previousMonthKey)?.count || 0;
+    const comparison = document.getElementById("visitorMonthComparison");
+    if (comparison) {
+      if (previousMonthTotal > 0) {
+        const change = ((month - previousMonthTotal) / previousMonthTotal) * 100;
+        const direction = change > 0 ? "up" : change < 0 ? "down" : "unchanged";
+        comparison.textContent = Math.abs(change).toFixed(1) + "% " + direction + " vs last month";
+        comparison.className = "analytics-comparison " + (change > 0 ? "is-up" : change < 0 ? "is-down" : "");
+      } else {
+        comparison.textContent = "Previous month has no recorded baseline yet";
+        comparison.className = "analytics-comparison";
+      }
+    }
   }
 
   function showLogin(message) {
