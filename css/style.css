@@ -172,3 +172,5 @@
 .simulator-controls button:disabled{opacity:.45;cursor:not-allowed}
 .simulator-status{font-size:11px;line-height:1.5;color:#315b63;margin:12px 0 5px}
 .simulator-disclaimer{font-size:10px;line-height:1.55;color:#9a6425;margin:0}
+
+.device-monitor-status.is-simulated{color:#8a6224;background:#fff2dc}
