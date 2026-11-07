@@ -101,7 +101,10 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       status: "open",
       source: data.source || "manual_test",
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdBy: auth.currentUser.uid
+      createdBy: auth.currentUser.uid,
+      source: data.source || "manual",
+      isSimulated: Boolean(data.isSimulated),
+      simulatorSessionId: data.simulatorSessionId || null
     }),
     updateAlertStatus: (alertId, status) => {
       if (!["acknowledged", "resolved"].includes(status)) throw new Error("Invalid alert status.");
