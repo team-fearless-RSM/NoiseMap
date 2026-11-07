@@ -108,7 +108,25 @@
         <footer class="footer"><span>NoiseMap · A Team Fearless project</span><span>Prototype preview · <a href="https://github.com/team-fearless-RSM/NoiseMap" target="_blank" rel="noreferrer">GitHub repository ↗</a></span></footer>
       </section>
 
-      <section class="page-content secondary-page" id="locations"><div class="eyebrow">WORKSPACE</div><h1>Locations</h1><p class="intro">Organise the places where observations may be collected.</p><div class="panel empty-panel"><span class="empty-icon">⌖</span><h2>Location records will appear here</h2><p>The entries on the overview page are placeholders. Add verified site names and details when your team finalises monitoring locations.</p></div></section>
+      <section class="page-content secondary-page" id="locations">
+        <div class="eyebrow">WORKSPACE</div>
+        <h1>Locations</h1>
+        <p class="intro">Publicly view verified monitoring sites. Authorised team members can add records.</p>
+        <p class="location-status-line" id="locationStatus" role="status">Connecting to Firestore…</p>
+        <form class="panel location-form" id="locationForm" hidden>
+          <div class="panel-heading"><div><h2>Add a monitoring location</h2><p>Only authorised Team Fearless members can submit records.</p></div></div>
+          <label for="locationName">Location name</label>
+          <input id="locationName" name="name" type="text" maxlength="100" placeholder="e.g. School Campus" required>
+          <label for="locationDescription">Description</label>
+          <textarea id="locationDescription" name="description" rows="2" maxlength="300" placeholder="Briefly describe the monitoring point"></textarea>
+          <label for="locationState">Status</label>
+          <select id="locationState" name="status"><option value="planned">Planned</option><option value="active">Active</option><option value="paused">Paused</option></select>
+          <button class="location-submit" id="locationSubmit" type="submit">Add location</button>
+          <p class="location-form-message" id="locationFormMessage" role="status" aria-live="polite"></p>
+        </form>
+        <div class="firestore-location-list" id="firestoreLocationList" aria-live="polite"></div>
+        <div class="panel empty-panel" id="locationEmpty"><span class="empty-icon">⌖</span><h2>No locations added yet</h2><p>When an authorised team member adds a monitoring site, it will appear here for everyone to view.</p></div>
+      </section>
       <section class="page-content secondary-page" id="devices"><div class="eyebrow">WORKSPACE</div><h1>Devices</h1><p class="intro">Keep track of sensor units and their connection status.</p><div class="panel empty-panel"><span class="empty-icon">▣</span><h2>No live device connected</h2><p>The Arduino and sensor integration is not connected to this website yet. Device readings will appear after the data-transfer method is implemented and tested.</p></div></section>
       <section class="page-content secondary-page" id="history"><div class="eyebrow">WORKSPACE</div><h1>Historical Data</h1><p class="intro">Explore observations by date, time, and location.</p><div class="panel empty-panel"><span class="empty-icon">⌁</span><h2>Historical records are not connected yet</h2><p>This section will show stored observations once the Firebase database is configured and real device data is available.</p></div></section>
       <section class="page-content secondary-page" id="actions"><div class="eyebrow">WORKSPACE</div><h1>Action Tracker</h1><p class="intro">Record what the team does after identifying a concern.</p><div class="panel empty-panel"><span class="empty-icon">✓</span><h2>Track actions transparently</h2><p>Future records can include the observation reference, action taken, date, responsible person, and verified response status. No authority contact or response is claimed in this prototype.</p></div></section>
