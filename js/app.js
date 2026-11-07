@@ -33,6 +33,13 @@
   let currentUser = null;
   let canEditAlerts = false;
   let canEditLocations = false;
+  let canManageRecords = false;
+  let cachedDevices = [];
+  let cachedObservations = [];
+  let cachedActions = [];
+  let deviceUnsubscribe = null;
+  let observationUnsubscribe = null;
+  let actionUnsubscribe = null;
   let cachedAlerts = [];
   let locationUnsubscribe = null;
 
@@ -78,8 +85,16 @@
     setVisitorCounterVisibility(Boolean(user && isEditor));
     canEditAlerts = Boolean(user && isEditor);
     canEditLocations = Boolean(user && isEditor);
+    canManageRecords = Boolean(user && isEditor);
+    ["deviceForm", "observationForm", "actionForm"].forEach(id => {
+      const form = document.getElementById(id);
+      if (form) form.hidden = !canManageRecords;
+    });
     renderLocations(cachedLocations);
     renderAlerts(cachedAlerts);
+    renderDevices(cachedDevices);
+    renderObservations(cachedObservations);
+    renderActions(cachedActions);
   }
 
   if (teamSignInButton) teamSignInButton.addEventListener("click", () => showLogin(""));
@@ -146,6 +161,7 @@
     locationUnsubscribe = window.NoiseMap.subscribeLocations(locations => {
       cachedLocations = locations;
       populateAlertLocations(locations);
+      populateRecordLocationSelects(locations);
       renderLocations(locations);
       if (locationStatus) locationStatus.textContent = locations.length
         ? "Live Firestore data · " + locations.length + " location(s)"
@@ -160,6 +176,9 @@
     connectVisitorCounter();
     connectLocations();
     connectAlerts();
+    connectDevices();
+    connectObservations();
+    connectActions();
     window.NoiseMap.onAuthStateChanged(async user => {
       currentUser = user;
       let isEditor = false;
@@ -374,6 +393,212 @@
       }
     });
   }
+
+
+  function populateRecordLocationSelects(locations) {
+    ["deviceLocation", "observationLocation"].forEach(id => {
+      const select = document.getElementById(id);
+      if (!select) return;
+      const previous = select.value;
+      select.innerHTML = '<option value="">Select a location</option>';
+      locations.forEach(location => {
+        const option = document.createElement("option");
+        option.value = location.id;
+        option.textContent = location.name || "Unnamed location";
+        select.appendChild(option);
+      });
+      if (previous && locations.some(location => location.id === previous)) select.value = previous;
+    });
+  }
+
+  function populateDeviceSelects(devices) {
+    ["observationDevice"].forEach(id => {
+      const select = document.getElementById(id);
+      if (!select) return;
+      const previous = select.value;
+      select.innerHTML = '<option value="">No device selected</option>';
+      devices.forEach(device => {
+        const option = document.createElement("option");
+        option.value = device.id;
+        option.textContent = device.deviceId || "Unnamed device";
+        select.appendChild(option);
+      });
+      if (previous && devices.some(device => device.id === previous)) select.value = previous;
+    });
+  }
+
+  function recordCard(title, description, meta, collection, id) {
+    const card = document.createElement("article");
+    card.className = "firestore-location-card";
+    const details = document.createElement("div");
+    details.className = "firestore-location-details";
+    const heading = document.createElement("h3");
+    heading.textContent = title;
+    const body = document.createElement("p");
+    body.textContent = description || "No additional details.";
+    const foot = document.createElement("p");
+    foot.textContent = meta || "";
+    details.append(heading, body, foot);
+    card.appendChild(details);
+    if (canManageRecords) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "location-delete-button";
+      button.textContent = "Delete";
+      button.addEventListener("click", async () => {
+        if (!window.confirm("Permanently delete this " + collection + " record? This cannot be undone.")) return;
+        button.disabled = true;
+        button.textContent = "Deleting…";
+        try {
+          await window.NoiseMap["delete" + collection](id);
+        } catch (error) {
+          console.error("Could not delete " + collection + " record:", error);
+          window.alert(error.code === "permission-denied"
+            ? "Permission denied. Sign in with an authorised Team Fearless account and check the Firestore rules."
+            : "Could not delete this record. Please try again.");
+          button.disabled = false;
+          button.textContent = "Delete";
+        }
+      });
+      card.appendChild(button);
+    }
+    return card;
+  }
+
+  function renderDevices(devices) {
+    const list = document.getElementById("deviceList");
+    const empty = document.getElementById("deviceEmpty");
+    if (!list) return;
+    list.innerHTML = "";
+    if (empty) empty.hidden = devices.length > 0;
+    devices.forEach(device => {
+      const location = cachedLocations.find(item => item.id === device.locationId);
+      list.appendChild(recordCard(
+        device.deviceId || "Unnamed device",
+        device.hardware || "Hardware not specified",
+        "Location: " + (location ? location.name : "Not linked") + " · Status: " + (device.connectionStatus || "unknown"),
+        "Device", device.id
+      ));
+    });
+    populateDeviceSelects(devices);
+  }
+
+  function renderObservations(observations) {
+    const list = document.getElementById("observationList");
+    const empty = document.getElementById("observationEmpty");
+    if (!list) return;
+    list.innerHTML = "";
+    if (empty) empty.hidden = observations.length > 0;
+    observations.forEach(observation => {
+      const location = cachedLocations.find(item => item.id === observation.locationId);
+      const device = cachedDevices.find(item => item.id === observation.deviceId);
+      const raw = observation.rawValue ?? observation.rawAdc ?? observation.raw_adc;
+      const dateValue = observation.timestamp || observation.createdAt;
+      list.appendChild(recordCard(
+        location ? location.name : "Observation record",
+        "Raw reading: " + (raw === undefined ? "not recorded" : raw + " ADC") + " · Device: " + (device ? device.deviceId : (observation.deviceId || "Not linked")),
+        "Recorded: " + formatAlertTime(dateValue),
+        "Observation", observation.id
+      ));
+    });
+  }
+
+  function renderActions(actions) {
+    const list = document.getElementById("actionList");
+    const empty = document.getElementById("actionEmpty");
+    if (!list) return;
+    list.innerHTML = "";
+    if (empty) empty.hidden = actions.length > 0;
+    actions.forEach(action => {
+      list.appendChild(recordCard(
+        action.description || "Action record",
+        "Responsible: " + (action.responsible || "Not assigned") + " · Status: " + (action.responseStatus || "not verified"),
+        "Action date: " + (action.actionDate || "Not recorded") + (action.evidenceUrl ? " · Evidence: " + action.evidenceUrl : ""),
+        "Action", action.id
+      ));
+    });
+  }
+
+  function connectDevices() {
+    if (!window.NoiseMap || !window.NoiseMap.configured) return;
+    deviceUnsubscribe = window.NoiseMap.subscribeDevices(items => {
+      cachedDevices = items;
+      renderDevices(items);
+      renderObservations(cachedObservations);
+    }, error => console.error("Could not load devices:", error));
+  }
+
+  function connectObservations() {
+    if (!window.NoiseMap || !window.NoiseMap.configured) return;
+    observationUnsubscribe = window.NoiseMap.subscribeObservations(items => {
+      cachedObservations = items;
+      renderObservations(items);
+    }, error => console.error("Could not load observations:", error));
+  }
+
+  function connectActions() {
+    if (!window.NoiseMap || !window.NoiseMap.configured) return;
+    actionUnsubscribe = window.NoiseMap.subscribeActions(items => {
+      cachedActions = items;
+      renderActions(items);
+    }, error => console.error("Could not load actions:", error));
+  }
+
+  function wireRecordForm(formId, submitId, submitLabel, createMethod, collectData, successMessage) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    const button = document.getElementById(submitId);
+    const message = document.getElementById(formId + "Message");
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!canManageRecords) {
+        if (message) message.textContent = "Sign in with an authorised Team Fearless account first.";
+        return;
+      }
+      if (button) { button.disabled = true; button.textContent = "Saving…"; }
+      if (message) message.textContent = "";
+      try {
+        await window.NoiseMap[createMethod](collectData());
+        form.reset();
+        if (message) message.textContent = successMessage;
+      } catch (error) {
+        console.error("Could not save record:", error);
+        if (message) message.textContent = error.code === "permission-denied"
+          ? "Permission denied. Check Team Fearless membership and Firestore rules."
+          : "Could not save this record. Please try again.";
+      } finally {
+        if (button) { button.disabled = false; button.textContent = submitLabel; }
+      }
+    });
+  }
+
+  wireRecordForm("deviceForm", "deviceSubmit", "Add device", "addDevice", () => ({
+    deviceId: document.getElementById("deviceId").value.trim(),
+    locationId: document.getElementById("deviceLocation").value,
+    hardware: document.getElementById("deviceHardware").value.trim(),
+    connectionStatus: document.getElementById("deviceStatus").value
+  }), "Device added to NoiseMap.");
+
+  wireRecordForm("observationForm", "observationSubmit", "Add observation", "addObservation", () => {
+    const rawValue = Number(document.getElementById("observationRawValue").value);
+    const dateInput = document.getElementById("observationTimestamp").value;
+    return {
+      deviceId: document.getElementById("observationDevice").value || null,
+      locationId: document.getElementById("observationLocation").value || null,
+      rawValue,
+      measurementType: "raw_adc",
+      unit: "ADC (0-1023)",
+      timestamp: dateInput ? new Date(dateInput) : null
+    };
+  }, "Observation added to historical data.");
+
+  wireRecordForm("actionForm", "actionSubmit", "Add action", "addAction", () => ({
+    description: document.getElementById("actionDescription").value.trim(),
+    actionDate: document.getElementById("actionDate").value || null,
+    responsible: document.getElementById("actionResponsible").value.trim(),
+    responseStatus: document.getElementById("actionStatus").value,
+    evidenceUrl: document.getElementById("actionEvidence").value.trim()
+  }), "Action added to the tracker.");
 
   if (loginForm) {
     loginForm.addEventListener("submit", async event => {
