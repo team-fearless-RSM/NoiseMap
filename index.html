@@ -156,6 +156,16 @@
       <section class="page-content secondary-page" id="devices">
         <div class="eyebrow">WORKSPACE</div><h1>Devices</h1>
         <p class="intro">View registered sensor units. Authorised Team Fearless members can add and delete device records.</p>
+        <section class="device-monitoring" aria-label="Device monitoring overview">
+          <div class="device-monitoring-heading"><div><h2>Device monitoring</h2><p>Reporting status is based on the latest saved observation, not a live hardware heartbeat.</p></div><span class="device-monitoring-tag">SENSOR NETWORK</span></div>
+          <div class="device-monitoring-stats">
+            <article class="device-monitor-stat"><span>Registered devices</span><strong id="deviceTotal">0</strong></article>
+            <article class="device-monitor-stat"><span>Recent readings · 5 min</span><strong id="deviceRecent">0</strong></article>
+            <article class="device-monitor-stat"><span>No recent readings</span><strong id="deviceWaiting">0</strong></article>
+          </div>
+          <div class="device-monitor-grid" id="deviceMonitorGrid" aria-live="polite"></div>
+          <p class="device-monitor-footnote" id="deviceMonitorNote">Waiting for registered devices and saved observations. Raw ADC values are not decibels.</p>
+        </section>
         <form class="panel location-form record-form" id="deviceForm" hidden>
           <div class="panel-heading"><div><h2>Register a device</h2><p>Adding a device record does not mean it is connected or sending live readings.</p></div></div>
           <label for="deviceId">Device name / ID</label><input id="deviceId" required maxlength="100" placeholder="e.g. NM-CLASS-01">
