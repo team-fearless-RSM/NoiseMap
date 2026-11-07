@@ -11,7 +11,9 @@
   const visitorStatCard = document.getElementById("visitorStatCard");
   const visitorCount = document.getElementById("visitorCount");
   const visitorCountStatus = document.getElementById("visitorCountStatus");
+  const visitorAnalytics = document.getElementById("visitorAnalytics");
   let visitorCountUnsubscribe = null;
+  let visitorAnalyticsUnsubscribe = null;
 
   const teamSignInButton = document.getElementById("teamSignInButton");
   const publicViewButton = document.getElementById("publicViewButton");
@@ -53,9 +55,14 @@
 
   function setVisitorCounterVisibility(isEditor) {
     if (visitorStatCard) visitorStatCard.hidden = !isEditor;
+    if (visitorAnalytics) visitorAnalytics.hidden = !isEditor;
     if (visitorCountUnsubscribe) {
       visitorCountUnsubscribe();
       visitorCountUnsubscribe = null;
+    }
+    if (visitorAnalyticsUnsubscribe) {
+      visitorAnalyticsUnsubscribe();
+      visitorAnalyticsUnsubscribe = null;
     }
     if (!isEditor || !window.NoiseMap || !window.NoiseMap.configured || !visitorCount) return;
     if (visitorCountStatus) visitorCountStatus.textContent = "Loading visit count…";
@@ -65,6 +72,73 @@
     }, error => {
       console.error("Could not load visitor count:", error);
       if (visitorCountStatus) visitorCountStatus.textContent = "Visit count unavailable";
+    });
+    const analyticsStatus = document.getElementById("visitorAnalyticsStatus");
+    visitorAnalyticsUnsubscribe = window.NoiseMap.subscribeVisitorAnalytics(dailyCounts => {
+      renderVisitorAnalytics(dailyCounts);
+      if (analyticsStatus) analyticsStatus.textContent = "Live Firestore analytics · Daily totals recorded from the date analytics was enabled.";
+    }, error => {
+      console.error("Could not load visitor analytics:", error);
+      if (analyticsStatus) analyticsStatus.textContent = "Analytics unavailable. Check Firestore rules and connection.";
+    });
+  }
+
+  function indiaDateKey(date = new Date()) {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(date).reduce((result, item) => {
+      if (item.type !== "literal") result[item.type] = item.value;
+      return result;
+    }, {});
+    return parts.year + "-" + parts.month + "-" + parts.day;
+  }
+
+  function shiftDateKey(key, offset) {
+    const [year, month, day] = key.split("-").map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day + offset));
+    return date.toISOString().slice(0, 10);
+  }
+
+  function renderVisitorAnalytics(dailyCounts) {
+    const todayKey = indiaDateKey();
+    const today = Number(dailyCounts[todayKey] || 0);
+    const lastSevenKeys = Array.from({ length: 7 }, (_, index) => shiftDateKey(todayKey, index - 6));
+    const week = lastSevenKeys.reduce((sum, key) => sum + Number(dailyCounts[key] || 0), 0);
+    const monthPrefix = todayKey.slice(0, 7);
+    const month = Object.entries(dailyCounts).reduce((sum, [key, count]) =>
+      key.startsWith(monthPrefix) ? sum + Number(count || 0) : sum, 0);
+    const format = value => Number(value).toLocaleString("en-IN");
+    const todayEl = document.getElementById("visitsToday");
+    const weekEl = document.getElementById("visitsWeek");
+    const monthEl = document.getElementById("visitsMonth");
+    if (todayEl) todayEl.textContent = format(today);
+    if (weekEl) weekEl.textContent = format(week);
+    if (monthEl) monthEl.textContent = format(month);
+
+    const chart = document.getElementById("visitorDailyChart");
+    if (!chart) return;
+    chart.innerHTML = "";
+    const max = Math.max(1, ...lastSevenKeys.map(key => Number(dailyCounts[key] || 0)));
+    lastSevenKeys.forEach(key => {
+      const count = Number(dailyCounts[key] || 0);
+      const column = document.createElement("div");
+      column.className = "analytics-bar-column";
+      const value = document.createElement("span");
+      value.className = "analytics-bar-value";
+      value.textContent = format(count);
+      const track = document.createElement("div");
+      track.className = "analytics-bar-track";
+      const bar = document.createElement("div");
+      bar.className = "analytics-bar";
+      bar.style.height = (count ? Math.max(5, count / max * 100) : 0) + "%";
+      track.appendChild(bar);
+      const label = document.createElement("span");
+      label.className = "analytics-bar-label";
+      label.textContent = new Intl.DateTimeFormat("en-IN", {
+        timeZone: "UTC", day: "numeric", month: "short"
+      }).format(new Date(key + "T12:00:00Z"));
+      column.append(value, track, label);
+      chart.appendChild(column);
     });
   }
 
