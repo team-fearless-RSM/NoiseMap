@@ -5,25 +5,38 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Anyone can view published NoiseMap records. Only authenticated team accounts can change them.
+    // A user is a team editor only when an administrator has added their Auth UID
+    // as a document in the teamMembers collection.
+    function isTeamMember() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/teamMembers/$(request.auth.uid));
+    }
+
+    // Publicly viewable project data; only explicitly allowlisted team members can edit.
     match /locations/{documentId} {
       allow read: if true;
-      allow create, update, delete: if signedIn();
+      allow create, update, delete: if isTeamMember();
     }
 
     match /devices/{documentId} {
       allow read: if true;
-      allow create, update, delete: if signedIn();
+      allow create, update, delete: if isTeamMember();
     }
 
     match /observations/{documentId} {
       allow read: if true;
-      allow create, update, delete: if signedIn();
+      allow create, update, delete: if isTeamMember();
     }
 
     match /actions/{documentId} {
       allow read: if true;
-      allow create, update, delete: if signedIn();
+      allow create, update, delete: if isTeamMember();
+    }
+
+    // Team membership documents are managed manually in Firebase Console.
+    match /teamMembers/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow write: if false;
     }
 
     match /{document=**} {
