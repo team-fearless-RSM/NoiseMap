@@ -16,6 +16,7 @@ The firmware should send one JSON object per observation. Example values below a
   "status": "NOISE",
   "warning_count": 2,
   "event": "observation",
+  "episode_id": "boot123_episode04",
   "firmware_version": "0.1.0"
 }
 ```
@@ -48,17 +49,19 @@ The ESP8266 will connect to the classroom's 2.4 GHz Wi-Fi. It must not contain a
 
 The current Firestore rules allow public reads but restrict writes in the project collections to signed-in team members. Therefore, do not weaken those rules or put a team login password in device firmware. The intended production path is:
 
-1. ESP8266 sends HTTPS JSON to a small authenticated ingestion endpoint (for example, a Firebase Cloud Function).
-2. The endpoint validates a per-device credential, device/location registration, field types and allowed values.
-3. The endpoint writes observations/alerts to Firestore using server-side credentials.
-4. The public dashboard reads approved observations; staffroom alert visibility should follow the team's chosen privacy rule.
+1. ESP8266 sends HTTPS JSON to the Firebase Cloud Function named ingestDeviceData.
+2. The endpoint checks a unique per-device bearer token against its SHA-256 hash in the server-only deviceSecrets collection, then validates device/location registration and message fields.
+3. The endpoint writes observations and deduplicated staffroom alerts to Firestore using server-side credentials.
+4. The public dashboard reads the resulting records. Alert documents must not contain personal or sensitive data.
 
-A per-device credential must be unique and revocable. Do not commit it to this public repository. Store secrets in the server's secret manager.
+The raw device token stays in device firmware and must never be committed to this public repository or stored in Firestore. The hash can be revoked by replacing or deleting the device secret document.
 
 ## Current implementation status
 
 - Website Firebase client and team sign-in exist.
 - Firestore collections used by the website include `locations`, `devices`, `observations`, `actions`, and `alerts`.
 - Arduino UNO currently produces serial JSON for bench testing.
-- ESP8266 firmware, Wi-Fi transmission, secure ingestion endpoint and live device-fed dashboard are not yet implemented.
+- The HTTPS ingestion endpoint source is prepared in functions/index.js; it is not deployed yet.
+- ESP8266 firmware, Wi-Fi transmission, device registration/credential provisioning and live device-fed dashboard integration are still pending.
+- Deploying Firebase Cloud Functions requires the Firebase project to use the Blaze billing plan.
 - The sensor threshold remains provisional until classroom trials.
