@@ -27,6 +27,7 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       addObservation: async () => { throw new Error("Firebase is not configured yet."); },
       subscribeAlerts: () => () => {}, addAlert: async () => { throw new Error("Firebase is not configured yet."); },
       updateAlertStatus: async () => { throw new Error("Firebase is not configured yet."); },
+      deleteAlert: async () => { throw new Error("Firebase is not configured yet."); },
       addLocation: async () => { throw new Error("Firebase is not configured yet."); },
       deleteLocation: async () => { throw new Error("Firebase is not configured yet."); },
       addDevice: async () => { throw new Error("Firebase is not configured yet."); },
@@ -85,6 +86,10 @@ window.NOISEMAP_FIREBASE_CONFIG = {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedBy: auth.currentUser.uid
       });
+    },
+    deleteAlert: alertId => {
+      if (!auth.currentUser) throw new Error("Sign in with an authorised team account first.");
+      return db.collection("alerts").doc(alertId).delete();
     },
     subscribeLocations: (onData, onError) => db.collection("locations")
       .orderBy("name")
