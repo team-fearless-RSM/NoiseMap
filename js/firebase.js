@@ -28,6 +28,7 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       subscribeAlerts: () => () => {}, addAlert: async () => { throw new Error("Firebase is not configured yet."); },
       updateAlertStatus: async () => { throw new Error("Firebase is not configured yet."); },
       addLocation: async () => { throw new Error("Firebase is not configured yet."); },
+      deleteLocation: async () => { throw new Error("Firebase is not configured yet."); },
       addDevice: async () => { throw new Error("Firebase is not configured yet."); },
       addAction: async () => { throw new Error("Firebase is not configured yet."); },
       incrementVisitorCount: async () => { throw new Error("Firebase is not configured yet."); },
@@ -88,6 +89,10 @@ window.NOISEMAP_FIREBASE_CONFIG = {
     subscribeLocations: (onData, onError) => db.collection("locations")
       .orderBy("name")
       .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
+    deleteLocation: locationId => {
+      if (!auth.currentUser) throw new Error("Sign in with an authorised team account first.");
+      return db.collection("locations").doc(locationId).delete();
+    },
     addLocation: data => db.collection("locations").add({
       name: String(data.name || "").trim(),
       description: String(data.description || "").trim(),
