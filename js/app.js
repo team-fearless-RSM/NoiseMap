@@ -27,6 +27,7 @@
   let cachedLocations = [];
   let alertUnsubscribe = null;
   let currentUser = null;
+  let canEditAlerts = false;
   let locationUnsubscribe = null;
 
   function showLogin(message) {
@@ -43,6 +44,7 @@
     if (signOutButton) signOutButton.hidden = !user;
     if (locationForm) locationForm.hidden = !isEditor;
     if (alertTestForm) alertTestForm.hidden = !isEditor;
+    canEditAlerts = Boolean(user && isEditor);
   }
 
   if (teamSignInButton) teamSignInButton.addEventListener("click", () => showLogin(""));
@@ -159,7 +161,7 @@
         (Number.isFinite(Number(alert.rawAdc)) ? alert.rawAdc + " ADC" : "not recorded") +
         (alert.source === "manual_test" ? " · TEST ALERT" : "");
       card.append(top, detail);
-      if (currentUser && alert.status !== "resolved") {
+      if (canEditAlerts && alert.status !== "resolved") {
         const actions = document.createElement("div");
         actions.className = "staff-alert-actions";
         if (alert.status !== "acknowledged") {
@@ -182,7 +184,7 @@
   }
 
   async function changeAlertStatus(id, status, button) {
-    if (!currentUser || !window.NoiseMap) return;
+    if (!canEditAlerts || !window.NoiseMap) return;
     button.disabled = true;
     try {
       await window.NoiseMap.updateAlertStatus(id, status);
@@ -209,7 +211,7 @@
   if (alertTestForm) {
     alertTestForm.addEventListener("submit", async event => {
       event.preventDefault();
-      if (!currentUser) {
+      if (!canEditAlerts) {
         if (alertTestMessage) alertTestMessage.textContent = "Sign in with an authorised team account first.";
         return;
       }
