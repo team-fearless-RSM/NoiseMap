@@ -45,6 +45,7 @@
     if (locationForm) locationForm.hidden = !isEditor;
     if (alertTestForm) alertTestForm.hidden = !isEditor;
     canEditAlerts = Boolean(user && isEditor);
+    canEditAlerts = Boolean(user && isEditor);
   }
 
   if (teamSignInButton) teamSignInButton.addEventListener("click", () => showLogin(""));
