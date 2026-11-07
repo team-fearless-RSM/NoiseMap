@@ -25,6 +25,8 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       signOut: async () => {},
       onAuthStateChanged: callback => { if (typeof callback === "function") callback(null); return () => {}; },
       addObservation: async () => { throw new Error("Firebase is not configured yet."); },
+      subscribeAlerts: () => () => {}, addAlert: async () => { throw new Error("Firebase is not configured yet."); },
+      updateAlertStatus: async () => { throw new Error("Firebase is not configured yet."); },
       addLocation: async () => { throw new Error("Firebase is not configured yet."); },
       addDevice: async () => { throw new Error("Firebase is not configured yet."); },
       addAction: async () => { throw new Error("Firebase is not configured yet."); }
@@ -45,6 +47,26 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       if (!uid) return false;
       const member = await db.collection("teamMembers").doc(uid).get();
       return member.exists;
+    },
+    subscribeAlerts: (onData, onError) => db.collection("alerts").orderBy("createdAt", "desc").limit(100)
+      .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
+    addAlert: data => db.collection("alerts").add({
+      locationId: data.locationId || null,
+      classroomName: String(data.classroomName || "Unknown classroom").trim(),
+      rawAdc: Number(data.rawAdc),
+      warningCount: 3,
+      status: "open",
+      source: data.source || "manual_test",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: auth.currentUser.uid
+    }),
+    updateAlertStatus: (alertId, status) => {
+      if (!["acknowledged", "resolved"].includes(status)) throw new Error("Invalid alert status.");
+      return db.collection("alerts").doc(alertId).update({
+        status,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: auth.currentUser.uid
+      });
     },
     subscribeLocations: (onData, onError) => db.collection("locations")
       .orderBy("name")
