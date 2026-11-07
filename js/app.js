@@ -11,6 +11,14 @@
 
   const teamSignInButton = document.getElementById("teamSignInButton");
   const publicViewButton = document.getElementById("publicViewButton");
+  const locationList = document.getElementById("firestoreLocationList");
+  const locationEmpty = document.getElementById("locationEmpty");
+  const locationStatus = document.getElementById("locationStatus");
+  const locationForm = document.getElementById("locationForm");
+  const locationFormMessage = document.getElementById("locationFormMessage");
+  const locationSubmit = document.getElementById("locationSubmit");
+  let currentUser = null;
+  let locationUnsubscribe = null;
 
   function showLogin(message) {
     if (authScreen) authScreen.hidden = false;
@@ -18,22 +26,112 @@
     if (authMessage) authMessage.textContent = message || "";
   }
 
-  function showWorkspace(user) {
+  function showWorkspace(user, isEditor = false) {
     if (authScreen) authScreen.hidden = true;
     if (appShell) appShell.hidden = false;
     if (signedInEmail) signedInEmail.textContent = user ? (user.email || "Team member") : "Public view";
     if (teamSignInButton) teamSignInButton.hidden = Boolean(user);
     if (signOutButton) signOutButton.hidden = !user;
+    if (locationForm) locationForm.hidden = !isEditor;
   }
 
   if (teamSignInButton) teamSignInButton.addEventListener("click", () => showLogin(""));
   if (publicViewButton) publicViewButton.addEventListener("click", () => showWorkspace(null));
 
   // The dashboard is public by default. Firebase authentication only unlocks team editing.
+  function renderLocations(locations) {
+    if (!locationList) return;
+    locationList.innerHTML = "";
+    if (!locations.length) {
+      if (locationEmpty) locationEmpty.hidden = false;
+      return;
+    }
+    if (locationEmpty) locationEmpty.hidden = true;
+    locations.forEach(location => {
+      const row = document.createElement("article");
+      row.className = "firestore-location-card";
+      const details = document.createElement("div");
+      details.className = "firestore-location-details";
+      const name = document.createElement("h3");
+      name.textContent = location.name || "Unnamed location";
+      const description = document.createElement("p");
+      description.textContent = location.description || "No description added.";
+      const meta = document.createElement("span");
+      meta.className = "firestore-location-status";
+      meta.textContent = location.status || "planned";
+      details.append(name, description);
+      row.append(details, meta);
+      locationList.appendChild(row);
+    });
+  }
+
+  function connectLocations() {
+    if (!window.NoiseMap || !window.NoiseMap.configured || !locationList) return;
+    if (locationStatus) locationStatus.textContent = "Loading locations from Firestore…";
+    if (locationUnsubscribe) locationUnsubscribe();
+    locationUnsubscribe = window.NoiseMap.subscribeLocations(locations => {
+      renderLocations(locations);
+      if (locationStatus) locationStatus.textContent = locations.length
+        ? "Live Firestore data · " + locations.length + " location(s)"
+        : "Connected to Firestore · no location records yet";
+    }, error => {
+      console.error("Could not load locations:", error);
+      if (locationStatus) locationStatus.textContent = "Could not load locations. Check Firestore rules and connection.";
+    });
+  }
+
   if (window.NoiseMap && window.NoiseMap.configured) {
-    window.NoiseMap.onAuthStateChanged(user => showWorkspace(user));
+    connectLocations();
+    window.NoiseMap.onAuthStateChanged(async user => {
+      currentUser = user;
+      let isEditor = false;
+      if (user) {
+        try {
+          isEditor = await window.NoiseMap.isTeamMember(user.uid);
+        } catch (error) {
+          console.error("Could not verify team membership:", error);
+        }
+      }
+      showWorkspace(user, isEditor);
+    });
   } else {
-    showWorkspace(null);
+    showWorkspace(null, false);
+    if (locationStatus) locationStatus.textContent = "Firebase is not configured.";
+  }
+
+  if (locationForm) {
+    locationForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!currentUser) {
+        if (locationFormMessage) locationFormMessage.textContent = "Sign in with an authorised team account first.";
+        return;
+      }
+      const name = document.getElementById("locationName").value.trim();
+      const description = document.getElementById("locationDescription").value.trim();
+      const status = document.getElementById("locationState").value;
+      if (!name) return;
+      if (locationSubmit) {
+        locationSubmit.disabled = true;
+        locationSubmit.textContent = "Saving…";
+      }
+      if (locationFormMessage) locationFormMessage.textContent = "";
+      try {
+        await window.NoiseMap.addLocation({ name, description, status });
+        locationForm.reset();
+        if (locationFormMessage) locationFormMessage.textContent = "Location saved to Firestore.";
+      } catch (error) {
+        console.error("Could not save location:", error);
+        if (locationFormMessage) locationFormMessage.textContent =
+          error.code === "permission-denied"
+            ? "Permission denied. Check that this account's UID is in teamMembers."
+            : "Could not save the location. Please try again.";
+      } finally {
+        if (locationSubmit) {
+          locationSubmit.disabled = false;
+          locationSubmit.textContent = "Add location";
+        }
+      }
+    });
   }
 
   if (loginForm) {
