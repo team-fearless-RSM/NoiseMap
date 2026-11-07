@@ -51,3 +51,28 @@
 .firestore-location-status{font-size:9px;text-transform:capitalize;background:#eef6f5;color:#167d75;border-radius:5px;padding:5px 7px;white-space:nowrap}
 #locationEmpty{margin-top:12px}
 @media(max-width:700px){.firestore-location-list{grid-template-columns:1fr}}
+
+/* Staffroom live alert dashboard */
+.alert-summary{display:flex;align-items:center;gap:9px;margin:18px 0;color:#718592;font-size:11px}
+.alert-live-dot{width:8px;height:8px;border-radius:50%;background:#16a899;box-shadow:0 0 0 4px #e3f6f2}
+.alert-test-form{max-width:720px;margin:0 0 20px;display:grid;gap:9px}
+.alert-test-form label{font-size:10px;font-weight:700;color:#526978;margin-top:4px}
+.alert-test-form input,.alert-test-form select{width:100%;border:1px solid #dce5ea;border-radius:7px;padding:10px 11px;font:12px "DM Sans",sans-serif;color:var(--ink);background:#fff}
+.alert-test-form input:focus,.alert-test-form select:focus{outline:2px solid rgba(22,168,153,.18);border-color:var(--teal)}
+.alert-list{display:grid;gap:12px}
+.staff-alert-card{background:#fff;border:1px solid #f0d9b8;border-left:4px solid #d99436;border-radius:9px;padding:17px 18px;box-shadow:var(--shadow)}
+.staff-alert-card.is-resolved{border-color:#d8ebe5;border-left-color:#16a899;opacity:.85}
+.staff-alert-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.staff-alert-top h3{font:700 14px Manrope,sans-serif;color:#294354;margin:0 0 5px}
+.staff-alert-top p{font-size:10px;color:#91a0aa;margin:0}
+.staff-alert-status{font-size:9px;font-weight:700;padding:6px 8px;border-radius:5px;background:#fff3df;color:#a66b1c;white-space:nowrap}
+.staff-alert-status.acknowledged{background:#eaf1fc;color:#477cc5}
+.staff-alert-status.resolved{background:#e4f6f2;color:#0c887b}
+.staff-alert-detail{font-size:11px;color:#687c89;margin:13px 0 0;line-height:1.6}
+.staff-alert-actions{display:flex;gap:8px;margin-top:14px}
+.staff-alert-actions button{border:1px solid #dce5ea;border-radius:6px;background:#fff;color:#345466;padding:8px 11px;font:600 10px "DM Sans",sans-serif;cursor:pointer}
+.staff-alert-actions button:hover{border-color:var(--teal);color:var(--teal-dark)}
+.staff-alert-actions button:disabled{opacity:.6;cursor:wait}
+.staff-alert-actions .resolve-alert-button{background:#eef8f7;border-color:#d4ebe6;color:#14796f}
+.alert-footnote{max-width:850px;margin:16px 0;color:#8b9aa4;font-size:10px;line-height:1.7}
+@media(max-width:700px){.staff-alert-top{flex-direction:column}.staff-alert-status{align-self:flex-start}}
