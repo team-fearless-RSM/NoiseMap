@@ -26,3 +26,9 @@
 .signout-button{border:1px solid #dce5ea;background:#fff;color:#536978;border-radius:6px;padding:7px 10px;font:600 10px "DM Sans",sans-serif;cursor:pointer}
 .signout-button:hover{border-color:var(--teal);color:var(--teal-dark)}
 @media(max-width:500px){.auth-card{padding:26px 22px}.auth-brand{margin-bottom:28px}.topbar-right{gap:7px}.signout-button{padding:6px 8px}}
+
+/* Public dashboard and optional team sign-in */
+[hidden]{display:none!important}
+.team-login-button,.public-view-button{border:1px solid #dce7eb;background:#fff;color:#167d75;border-radius:7px;padding:8px 11px;font:600 11px "DM Sans",sans-serif;cursor:pointer}
+.team-login-button:hover,.public-view-button:hover{background:#eef8f7}
+.public-view-button{margin-top:14px;width:100%}
