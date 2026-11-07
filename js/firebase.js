@@ -41,6 +41,14 @@ window.NOISEMAP_FIREBASE_CONFIG = {
     signIn: (email, password) => auth.signInWithEmailAndPassword(email.trim(), password),
     signOut: () => auth.signOut(),
     onAuthStateChanged: callback => auth.onAuthStateChanged(callback),
+    isTeamMember: async uid => {
+      if (!uid) return false;
+      const member = await db.collection("teamMembers").doc(uid).get();
+      return member.exists;
+    },
+    subscribeLocations: (onData, onError) => db.collection("locations")
+      .orderBy("name")
+      .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
     addLocation: data => db.collection("locations").add({
       name: String(data.name || "").trim(),
       description: String(data.description || "").trim(),
