@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102a43">
+  <meta name="description" content="NoiseMap — a community noise observation and action-tracking dashboard by Team Fearless.">
+  <title>NoiseMap | Team Fearless</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#overview" aria-label="NoiseMap home">
+        <span class="brand-mark">N<span>•</span></span>
+        <span><strong>NoiseMap</strong><small>TEAM FEARLESS</small></span>
+      </a>
+      <div class="side-label">WORKSPACE</div>
+      <nav class="nav-list" aria-label="Main navigation">
+        <a class="nav-link active" href="#overview" data-page="overview"><span>◫</span> Overview</a>
+        <a class="nav-link" href="#locations" data-page="locations"><span>⌖</span> Locations</a>
+        <a class="nav-link" href="#devices" data-page="devices"><span>▣</span> Devices</a>
+        <a class="nav-link" href="#history" data-page="history"><span>⌁</span> Historical Data</a>
+        <a class="nav-link" href="#actions" data-page="actions"><span>✓</span> Action Tracker</a>
+        <a class="nav-link" href="#about" data-page="about"><span>ⓘ</span> About NoiseMap</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="team-card"><div class="team-avatar">TF</div><div><strong>Team Fearless</strong><small>NRL Changemakers</small></div></div>
+        <p>Observe locally.<br><b>Make change together.</b></p>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button class="menu-button" id="menuButton" aria-label="Toggle navigation">☰</button>
+        <div class="breadcrumb">Workspace <span>/</span> <strong id="pageName">Overview</strong></div>
+        <div class="topbar-right"><span class="status-dot"></span><span>Prototype dashboard</span><span class="top-avatar">TF</span></div>
+      </header>
+
+      <section class="page-content" id="overview">
+        <div class="welcome-row">
+          <div><div class="eyebrow">TEAM FEARLESS <span>•</span> NRL CHANGEMAKERS</div><h1>Noise, made visible.</h1><p class="intro">A shared space to observe sound levels, understand patterns, and track community action.</p></div>
+          <div class="date-chip"><span>◷</span> <span id="todayLabel">Today</span></div>
+        </div>
+
+        <div class="notice"><span class="notice-icon">i</span><div><strong>Demo mode is active</strong><p>The figures and chart below are sample data for the website preview. They are not live sensor readings or calibrated dB/dB(A) measurements.</p></div><span class="demo-tag">SAMPLE DATA</span></div>
+
+        <div class="stats-grid">
+          <article class="stat-card"><div class="stat-top"><span>Monitored locations</span><span class="stat-icon teal">⌖</span></div><div class="stat-value">03</div><div class="stat-foot">Sample locations</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Registered devices</span><span class="stat-icon blue">▣</span></div><div class="stat-value">01</div><div class="stat-foot">Prototype device planned</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Observations today</span><span class="stat-icon violet">⌁</span></div><div class="stat-value">24</div><div class="stat-foot">Illustrative records</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Open actions</span><span class="stat-icon amber">✓</span></div><div class="stat-value">02</div><div class="stat-foot">Sample action items</div></article>
+        </div>
+
+        <div class="content-grid">
+          <article class="panel chart-panel">
+            <div class="panel-heading"><div><h2>Sound observations</h2><p>Illustrative activity across the day</p></div><span class="pill">DEMO · RAW INDEX</span></div>
+            <div class="chart-legend"><span><i></i> Sample sensor index</span><span class="legend-muted">Not dB / dB(A)</span></div>
+            <div class="chart-wrap"><canvas id="noiseChart" aria-label="Sample sound observation chart"></canvas></div>
+            <div class="chart-xlabels"><span>8 AM</span><span>10 AM</span><span>12 PM</span><span>2 PM</span><span>4 PM</span><span>6 PM</span></div>
+          </article>
+          <article class="panel location-panel">
+            <div class="panel-heading"><div><h2>Location overview</h2><p>Example monitoring points</p></div><a href="#locations" class="text-link">View all →</a></div>
+            <div class="location-list">
+              <div class="location-row"><span class="loc-pin mint">⌖</span><div class="loc-info"><strong>School Campus</strong><small>Sample location · Pune</small></div><span class="loc-state">Planned</span></div>
+              <div class="location-row"><span class="loc-pin sky">⌖</span><div class="loc-info"><strong>Main Road</strong><small>Sample location · Pune</small></div><span class="loc-state">Planned</span></div>
+              <div class="location-row"><span class="loc-pin peach">⌖</span><div class="loc-info"><strong>Community Area</strong><small>Sample location · Pune</small></div><span class="loc-state">Planned</span></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="content-grid lower-grid">
+          <article class="panel">
+            <div class="panel-heading"><div><h2>Recent observations</h2><p>Example records for layout preview</p></div><a href="#history" class="text-link">View history →</a></div>
+            <div class="table-scroll"><table><thead><tr><th>LOCATION</th><th>TIME</th><th>OBSERVATION</th><th>TYPE</th></tr></thead><tbody>
+              <tr><td>School Campus</td><td>10:30 AM</td><td>Sample event</td><td><span class="table-tag">Demo</span></td></tr>
+              <tr><td>Main Road</td><td>12:15 PM</td><td>Sample event</td><td><span class="table-tag">Demo</span></td></tr>
+              <tr><td>Community Area</td><td>2:00 PM</td><td>Sample event</td><td><span class="table-tag">Demo</span></td></tr>
+            </tbody></table></div>
+          </article>
+          <article class="panel action-preview">
+            <div class="panel-heading"><div><h2>Action tracker</h2><p>Follow-up status</p></div><a href="#actions" class="text-link">Open →</a></div>
+            <div class="action-item"><span class="action-check">!</span><div><strong>Review observation log</strong><small>Sample task · Not submitted</small></div><span class="action-status pending">Pending</span></div>
+            <div class="action-item"><span class="action-check">!</span><div><strong>Plan community awareness</strong><small>Sample task · Not submitted</small></div><span class="action-status pending">Pending</span></div>
+          </article>
+        </div>
+        <footer class="footer"><span>NoiseMap · A Team Fearless project</span><span>Prototype preview · <a href="https://github.com/team-fearless-RSM/NoiseMap" target="_blank" rel="noreferrer">GitHub repository ↗</a></span></footer>
+      </section>
+
+      <section class="page-content secondary-page" id="locations"><div class="eyebrow">WORKSPACE</div><h1>Locations</h1><p class="intro">Organise the places where observations may be collected.</p><div class="panel empty-panel"><span class="empty-icon">⌖</span><h2>Location records will appear here</h2><p>The entries on the overview page are placeholders. Add verified site names and details when your team finalises monitoring locations.</p></div></section>
+      <section class="page-content secondary-page" id="devices"><div class="eyebrow">WORKSPACE</div><h1>Devices</h1><p class="intro">Keep track of sensor units and their connection status.</p><div class="panel empty-panel"><span class="empty-icon">▣</span><h2>No live device connected</h2><p>The Arduino and sensor integration is not connected to this website yet. Device readings will appear after the data-transfer method is implemented and tested.</p></div></section>
+      <section class="page-content secondary-page" id="history"><div class="eyebrow">WORKSPACE</div><h1>Historical Data</h1><p class="intro">Explore observations by date, time, and location.</p><div class="panel empty-panel"><span class="empty-icon">⌁</span><h2>Historical records are not connected yet</h2><p>This section will show stored observations once the Firebase database is configured and real device data is available.</p></div></section>
+      <section class="page-content secondary-page" id="actions"><div class="eyebrow">WORKSPACE</div><h1>Action Tracker</h1><p class="intro">Record what the team does after identifying a concern.</p><div class="panel empty-panel"><span class="empty-icon">✓</span><h2>Track actions transparently</h2><p>Future records can include the observation reference, action taken, date, responsible person, and verified response status. No authority contact or response is claimed in this prototype.</p></div></section>
+      <section class="page-content secondary-page" id="about"><div class="eyebrow">THE PROJECT</div><h1>About NoiseMap</h1><p class="intro">Making local sound observations easier to understand and act on.</p><div class="panel about-panel"><h2>Our approach</h2><p>NoiseMap is a Team Fearless NRL Changemakers project concept. The goal is to build a system that records observations at selected locations, presents trends over time, and helps the team document awareness and follow-up actions.</p><div class="about-note"><strong>Measurement integrity matters.</strong><p>An LM393 sound sensor provides threshold and analogue signal information; its raw readings are not calibrated sound-pressure measurements. NoiseMap will only display dB or dB(A) if suitable calibrated measurement hardware and a documented calibration method are implemented.</p></div></div></section>
+    </main>
+  </div>
+  <script src="js/firebase.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
