@@ -8,6 +8,7 @@
   const authMessage = document.getElementById("authMessage");
   const signOutButton = document.getElementById("signOutButton");
   const signedInEmail = document.getElementById("signedInEmail");
+  const visitorStatCard = document.getElementById("visitorStatCard");
   const visitorCount = document.getElementById("visitorCount");
   const visitorCountStatus = document.getElementById("visitorCountStatus");
   let visitorCountUnsubscribe = null;
@@ -35,12 +36,21 @@
   let locationUnsubscribe = null;
 
   function connectVisitorCounter() {
-    if (!window.NoiseMap || !window.NoiseMap.configured || !visitorCount) return;
+    if (!window.NoiseMap || !window.NoiseMap.configured) return;
+    // Record each page load, including public visits. Public visitors never read the total.
     window.NoiseMap.incrementVisitorCount().catch(error => {
       console.error("Could not record website visit:", error);
-      if (visitorCountStatus) visitorCountStatus.textContent = "Visit count unavailable";
     });
-    if (visitorCountUnsubscribe) visitorCountUnsubscribe();
+  }
+
+  function setVisitorCounterVisibility(isEditor) {
+    if (visitorStatCard) visitorStatCard.hidden = !isEditor;
+    if (visitorCountUnsubscribe) {
+      visitorCountUnsubscribe();
+      visitorCountUnsubscribe = null;
+    }
+    if (!isEditor || !window.NoiseMap || !window.NoiseMap.configured || !visitorCount) return;
+    if (visitorCountStatus) visitorCountStatus.textContent = "Loading visit count…";
     visitorCountUnsubscribe = window.NoiseMap.subscribeVisitorCount(count => {
       visitorCount.textContent = Number(count).toLocaleString("en-IN");
       if (visitorCountStatus) visitorCountStatus.textContent = "All recorded website visits";
@@ -64,6 +74,7 @@
     if (signOutButton) signOutButton.hidden = !user;
     if (locationForm) locationForm.hidden = !isEditor;
     if (alertTestForm) alertTestForm.hidden = !isEditor;
+    setVisitorCounterVisibility(Boolean(user && isEditor));
     canEditAlerts = Boolean(user && isEditor);
     renderAlerts(cachedAlerts);
     canEditAlerts = Boolean(user && isEditor);
