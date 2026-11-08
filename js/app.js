@@ -351,7 +351,7 @@
         cachedLocations.forEach(location => {
           const link = document.createElement("a");
           link.className = "dashboard-location-link";
-          link.href = "#locations";
+          link.href = "#location-" + encodeURIComponent(location.id);
           const name = document.createElement("strong");
           name.textContent = location.name || "Unnamed location";
           const status = document.createElement("span");
@@ -385,6 +385,11 @@
       meta.className = "firestore-location-status";
       meta.textContent = location.status || "planned";
       details.append(name, description);
+      const openLink = document.createElement("a");
+      openLink.className = "location-open-link";
+      openLink.href = "#location-" + encodeURIComponent(location.id);
+      openLink.textContent = "Open location →";
+      details.appendChild(openLink);
       row.append(details, meta);
       if (canEditLocations) {
         const deleteButton = document.createElement("button");
@@ -417,6 +422,192 @@
     });
   }
 
+  function locationReadingDate(item) {
+    const value = item && (item.timestamp || item.createdAt);
+    if (!value) return null;
+    const date = typeof value.toDate === "function" ? value.toDate() : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function makeLocationDetailSection(location) {
+    const section = document.createElement("section");
+    section.className = "page-content secondary-page location-detail-page";
+    section.id = "location-" + location.id;
+
+    const back = document.createElement("a");
+    back.className = "text-link location-back-link";
+    back.href = "#locations";
+    back.textContent = "← All locations";
+    section.appendChild(back);
+
+    const eyebrow = document.createElement("div");
+    eyebrow.className = "eyebrow";
+    eyebrow.textContent = "LOCATION MONITORING";
+    section.appendChild(eyebrow);
+
+    const heading = document.createElement("h1");
+    heading.textContent = location.name || "Unnamed location";
+    section.appendChild(heading);
+
+    const intro = document.createElement("p");
+    intro.className = "intro";
+    intro.textContent = location.description || "Location-specific sensor readings and monitoring history.";
+    section.appendChild(intro);
+
+    const devices = cachedDevices.filter(device => device.locationId === location.id);
+    const observations = cachedObservations.filter(item => {
+      if (item.locationId) return item.locationId === location.id;
+      return devices.some(device => device.id === item.deviceId);
+    }).sort((a,b) => (locationReadingDate(b)?.getTime() || 0) - (locationReadingDate(a)?.getTime() || 0));
+    const latestByDevice = devices.map(device => ({
+      device,
+      latest: observations.find(item => item.deviceId === device.id) || null
+    }));
+    const latestObservation = observations[0] || null;
+    const latestDate = locationReadingDate(latestObservation);
+    const isRecent = !!latestDate && Date.now() - latestDate.getTime() >= 0 && Date.now() - latestDate.getTime() <= 5 * 60 * 1000;
+    const alerts = cachedAlerts.filter(alert =>
+      alert.locationId === location.id || (!alert.locationId && alert.classroomName === location.name)
+    ).sort((a,b) => (locationReadingDate({timestamp:b.createdAt})?.getTime() || 0) - (locationReadingDate({timestamp:a.createdAt})?.getTime() || 0));
+
+    const summary = document.createElement("div");
+    summary.className = "location-detail-summary";
+    const summaryItems = [
+      ["Location status", location.status || "planned"],
+      ["Registered sensors", String(devices.length)],
+      ["Sensor status", latestObservation ? (isRecent ? "Recent reading · 5 min" : "No recent data") : "Awaiting data"],
+      ["Latest raw reading", latestObservation ? String(latestObservation.rawValue ?? latestObservation.rawAdc ?? latestObservation.raw_adc ?? "—") + " ADC" : "—"]
+    ];
+    summaryItems.forEach(([label,value]) => {
+      const card = document.createElement("article");
+      card.className = "location-detail-stat";
+      const small = document.createElement("span"); small.textContent = label;
+      const strong = document.createElement("strong"); strong.textContent = value;
+      card.append(small,strong); summary.appendChild(card);
+    });
+    section.appendChild(summary);
+
+    const statusNote = document.createElement("p");
+    statusNote.className = "location-detail-note";
+    statusNote.textContent = "Sensor status is based on the newest saved observation, not a continuous hardware heartbeat. Raw ADC readings are not dB or dB(A).";
+    section.appendChild(statusNote);
+
+    const devicePanel = document.createElement("section");
+    devicePanel.className = "panel location-detail-panel";
+    const deviceHeading = document.createElement("div");
+    deviceHeading.className = "panel-heading";
+    const deviceTitle = document.createElement("div");
+    const deviceH = document.createElement("h2"); deviceH.textContent = "Assigned sensors";
+    const deviceP = document.createElement("p"); deviceP.textContent = "Devices registered at this monitoring location";
+    deviceTitle.append(deviceH,deviceP); deviceHeading.appendChild(deviceTitle); devicePanel.appendChild(deviceHeading);
+    if (!devices.length) {
+      const empty = document.createElement("p"); empty.className = "dashboard-empty-text"; empty.textContent = "No sensors are assigned to this location yet."; devicePanel.appendChild(empty);
+    } else {
+      devices.forEach(device => {
+        const row = document.createElement("div"); row.className = "location-detail-device";
+        const name = document.createElement("strong"); name.textContent = device.deviceId || "Unnamed device";
+        const status = document.createElement("span");
+        const latest = latestByDevice.find(item => item.device.id === device.id)?.latest;
+        const date = locationReadingDate(latest);
+        const recent = !!date && Date.now() - date.getTime() >= 0 && Date.now() - date.getTime() <= 5 * 60 * 1000;
+        status.textContent = latest ? (recent ? "Recent reading" : "No recent data") : "Awaiting data";
+        row.append(name,status);
+        const meta = document.createElement("small");
+        meta.textContent = (device.hardware || "Hardware not specified") + " · Last reading: " + (latest ? formatAlertTime(latest.timestamp || latest.createdAt) : "Not recorded");
+        row.appendChild(meta); devicePanel.appendChild(row);
+      });
+    }
+    section.appendChild(devicePanel);
+
+    const historyPanel = document.createElement("section");
+    historyPanel.className = "panel location-detail-panel";
+    const historyHeading = document.createElement("div"); historyHeading.className = "panel-heading";
+    const historyTitle = document.createElement("div");
+    const historyH = document.createElement("h2"); historyH.textContent = "Historical readings";
+    const historyP = document.createElement("p"); historyP.textContent = "Saved raw ADC observations for this location";
+    historyTitle.append(historyH,historyP); historyHeading.appendChild(historyTitle); historyPanel.appendChild(historyHeading);
+    if (observations.length >= 2) {
+      const chartWrap = document.createElement("div"); chartWrap.className = "location-history-chart";
+      const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+      svg.setAttribute("viewBox","0 0 600 180"); svg.setAttribute("role","img");
+      svg.setAttribute("aria-label","Historical raw ADC readings for " + (location.name || "this location"));
+      const valid = observations.slice(0,30).filter(item => Number.isFinite(Number(item.rawValue ?? item.rawAdc ?? item.raw_adc))).reverse();
+      if (valid.length >= 2) {
+        const values = valid.map(item => Number(item.rawValue ?? item.rawAdc ?? item.raw_adc));
+        const min = Math.min(...values), max = Math.max(...values), range = Math.max(1,max-min);
+        const points = values.map((value,index) => {
+          const x = 24 + index * (552 / Math.max(1,values.length-1));
+          const y = 150 - ((value-min)/range)*112;
+          return x.toFixed(1)+","+y.toFixed(1);
+        }).join(" ");
+        const line = document.createElementNS("http://www.w3.org/2000/svg","polyline");
+        line.setAttribute("points",points); line.setAttribute("fill","none");
+        line.setAttribute("stroke","#16a899"); line.setAttribute("stroke-width","3");
+        line.setAttribute("stroke-linecap","round"); line.setAttribute("stroke-linejoin","round");
+        svg.appendChild(line);
+        const minLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
+        minLabel.setAttribute("x","24"); minLabel.setAttribute("y","170"); minLabel.textContent = "Min " + min + " ADC";
+        const maxLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
+        maxLabel.setAttribute("x","576"); maxLabel.setAttribute("y","16"); maxLabel.setAttribute("text-anchor","end"); maxLabel.textContent = "Max " + max + " ADC";
+        svg.append(minLabel,maxLabel);
+      }
+      chartWrap.appendChild(svg); historyPanel.appendChild(chartWrap);
+      const chartNote = document.createElement("p"); chartNote.className = "location-detail-note";
+      chartNote.textContent = "Chart uses up to 30 latest saved readings. It shows raw sensor values, not calibrated sound levels.";
+      historyPanel.appendChild(chartNote);
+    } else {
+      const empty = document.createElement("p"); empty.className = "dashboard-empty-text";
+      empty.textContent = observations.length ? "Add more saved readings to display a trend graph." : "No historical readings recorded for this location yet.";
+      historyPanel.appendChild(empty);
+    }
+    const tableWrap = document.createElement("div"); tableWrap.className = "location-history-table";
+    if (observations.length) {
+      observations.slice(0,20).forEach(item => {
+        const row = document.createElement("div"); row.className = "location-history-row";
+        const value = document.createElement("strong"); value.textContent = String(item.rawValue ?? item.rawAdc ?? item.raw_adc ?? "—") + " ADC";
+        const date = document.createElement("span"); date.textContent = formatAlertTime(item.timestamp || item.createdAt);
+        const device = devices.find(entry => entry.id === item.deviceId);
+        const deviceLabel = document.createElement("small"); deviceLabel.textContent = (device ? device.deviceId : "Unlinked device") + (item.isSimulated ? " · SIMULATED" : "");
+        row.append(value,date,deviceLabel); tableWrap.appendChild(row);
+      });
+    }
+    historyPanel.appendChild(tableWrap);
+    section.appendChild(historyPanel);
+
+    const alertPanel = document.createElement("section");
+    alertPanel.className = "panel location-detail-panel";
+    const alertHeading = document.createElement("div"); alertHeading.className = "panel-heading";
+    const alertTitle = document.createElement("div");
+    const alertH = document.createElement("h2"); alertH.textContent = "Threshold exceedance history";
+    const alertP = document.createElement("p"); alertP.textContent = "Alert events recorded for this location";
+    alertTitle.append(alertH,alertP); alertHeading.appendChild(alertTitle); alertPanel.appendChild(alertHeading);
+    if (!alerts.length) {
+      const empty = document.createElement("p"); empty.className = "dashboard-empty-text";
+      empty.textContent = "No threshold alert records have been saved for this location.";
+      alertPanel.appendChild(empty);
+    } else {
+      alerts.slice(0,20).forEach(alert => {
+        const row = document.createElement("div"); row.className = "location-history-row";
+        const value = document.createElement("strong"); value.textContent = Number.isFinite(Number(alert.rawAdc)) ? alert.rawAdc + " ADC" : "Reading unavailable";
+        const date = document.createElement("span"); date.textContent = formatAlertTime(alert.createdAt);
+        const state = document.createElement("small"); state.textContent = (alert.status || "open").toUpperCase() + " · " + Number(alert.warningCount || 0) + " warnings" + (alert.source === "manual_test" ? " · TEST ALERT" : "");
+        row.append(value,date,state); alertPanel.appendChild(row);
+      });
+    }
+    const alertNote = document.createElement("p"); alertNote.className = "location-detail-note";
+    alertNote.textContent = "This list reflects saved alert records. A numeric sound threshold is not displayed because the current LM393 prototype is not calibrated in dB(A).";
+    alertPanel.appendChild(alertNote);
+    section.appendChild(alertPanel);
+    return section;
+  }
+
+  function renderLocationDetailPages() {
+    const container = document.getElementById("locationDetailPages");
+    if (!container) return;
+    container.innerHTML = "";
+    cachedLocations.forEach(location => container.appendChild(makeLocationDetailSection(location)));
+  }
+
   function connectLocations() {
     if (!window.NoiseMap || !window.NoiseMap.configured || !locationList) return;
     if (locationStatus) locationStatus.textContent = "Loading locations from Firestore…";
@@ -426,6 +617,7 @@
       populateAlertLocations(locations);
       populateRecordLocationSelects(locations);
       renderLocations(locations);
+      renderLocationDetailPages();
       renderDashboard();
       if (locationStatus) locationStatus.textContent = locations.length
         ? "Live Firestore data · " + locations.length + " location(s)"
@@ -574,6 +766,7 @@
     alertUnsubscribe = window.NoiseMap.subscribeAlerts(alerts => {
       cachedAlerts = alerts;
       renderAlerts(alerts);
+      renderLocationDetailPages();
       renderDashboard();
       if (alertStatusLine) alertStatusLine.textContent = "Live dashboard · " + alerts.length + " alert record(s)";
     }, error => {
@@ -860,6 +1053,7 @@
       cachedDevices = items;
       renderDevices(items);
       renderObservations(cachedObservations);
+      renderLocationDetailPages();
       renderDashboard();
     }, error => console.error("Could not load devices:", error));
   }
@@ -870,6 +1064,7 @@
       cachedObservations = items;
       renderObservations(items);
       renderDevices(cachedDevices);
+      renderLocationDetailPages();
       renderDashboard();
     }, error => console.error("Could not load observations:", error));
   }
@@ -1070,8 +1265,9 @@
   const sidebar = document.getElementById("sidebar");
   function setActive() {
     const id = (location.hash || "#overview").slice(1);
+    const pageId = id.startsWith("location-") ? "locations" : id;
     links.forEach(link => {
-      const active = link.dataset.page === id;
+      const active = link.dataset.page === pageId;
       link.classList.toggle("active", active);
       if (active && pageName) pageName.textContent = link.textContent.trim();
     });
