@@ -465,7 +465,7 @@
     }));
     const latestObservation = observations[0] || null;
     const latestDate = locationReadingDate(latestObservation);
-    const isRecent = !!latestDate && Date.now() - latestDate.getTime() >= 0 && Date.now() - latestDate.getTime() <= 5 * 60 * 1000;
+    const isRecent = !!latestObservation && !latestObservation.isSimulated && !!latestDate && Date.now() - latestDate.getTime() >= 0 && Date.now() - latestDate.getTime() <= 5 * 60 * 1000;
     const alerts = cachedAlerts.filter(alert =>
       alert.locationId === location.id || (!alert.locationId && alert.classroomName === location.name)
     ).sort((a,b) => (locationReadingDate({timestamp:b.createdAt})?.getTime() || 0) - (locationReadingDate({timestamp:a.createdAt})?.getTime() || 0));
@@ -475,7 +475,7 @@
     const summaryItems = [
       ["Location status", location.status || "planned"],
       ["Registered sensors", String(devices.length)],
-      ["Sensor status", latestObservation ? (isRecent ? "Recent reading · 5 min" : "No recent data") : "Awaiting data"],
+      ["Sensor status", latestObservation ? (latestObservation.isSimulated ? "Simulated test only" : isRecent ? "Recent reading · 5 min" : "No recent data") : "Awaiting data"],
       ["Latest raw reading", latestObservation ? String(latestObservation.rawValue ?? latestObservation.rawAdc ?? latestObservation.raw_adc ?? "—") + " ADC" : "—"]
     ];
     summaryItems.forEach(([label,value]) => {
@@ -509,8 +509,8 @@
         const status = document.createElement("span");
         const latest = latestByDevice.find(item => item.device.id === device.id)?.latest;
         const date = locationReadingDate(latest);
-        const recent = !!date && Date.now() - date.getTime() >= 0 && Date.now() - date.getTime() <= 5 * 60 * 1000;
-        status.textContent = latest ? (recent ? "Recent reading" : "No recent data") : "Awaiting data";
+        const recent = !!latest && !latest.isSimulated && !!date && Date.now() - date.getTime() >= 0 && Date.now() - date.getTime() <= 5 * 60 * 1000;
+        status.textContent = latest ? (latest.isSimulated ? "Simulated test only" : recent ? "Recent reading" : "No recent data") : "Awaiting data";
         row.append(name,status);
         const meta = document.createElement("small");
         meta.textContent = (device.hardware || "Hardware not specified") + " · Last reading: " + (latest ? formatAlertTime(latest.timestamp || latest.createdAt) : "Not recorded");
@@ -526,12 +526,13 @@
     const historyH = document.createElement("h2"); historyH.textContent = "Historical readings";
     const historyP = document.createElement("p"); historyP.textContent = "Saved raw ADC observations for this location";
     historyTitle.append(historyH,historyP); historyHeading.appendChild(historyTitle); historyPanel.appendChild(historyHeading);
-    if (observations.length >= 2) {
+    const chartableObservations = observations.filter(item => !item.isSimulated && Number.isFinite(Number(item.rawValue ?? item.rawAdc ?? item.raw_adc)));
+    if (chartableObservations.length >= 2) {
       const chartWrap = document.createElement("div"); chartWrap.className = "location-history-chart";
       const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
       svg.setAttribute("viewBox","0 0 600 180"); svg.setAttribute("role","img");
       svg.setAttribute("aria-label","Historical raw ADC readings for " + (location.name || "this location"));
-      const valid = observations.slice(0,30).filter(item => Number.isFinite(Number(item.rawValue ?? item.rawAdc ?? item.raw_adc))).reverse();
+      const valid = chartableObservations.slice(0,30).reverse();
       if (valid.length >= 2) {
         const values = valid.map(item => Number(item.rawValue ?? item.rawAdc ?? item.raw_adc));
         const min = Math.min(...values), max = Math.max(...values), range = Math.max(1,max-min);
@@ -553,7 +554,7 @@
       }
       chartWrap.appendChild(svg); historyPanel.appendChild(chartWrap);
       const chartNote = document.createElement("p"); chartNote.className = "location-detail-note";
-      chartNote.textContent = "Chart uses up to 30 latest saved readings. It shows raw sensor values, not calibrated sound levels.";
+      chartNote.textContent = "Chart uses up to 30 latest non-simulated saved readings. Simulated tests are labelled in the records below. Values are raw ADC, not calibrated sound levels.";
       historyPanel.appendChild(chartNote);
     } else {
       const empty = document.createElement("p"); empty.className = "dashboard-empty-text";
