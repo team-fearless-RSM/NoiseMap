@@ -229,10 +229,139 @@
     renderDevices(cachedDevices);
     renderObservations(cachedObservations);
     renderActions(cachedActions);
+    renderDashboard();
   }
 
   if (teamSignInButton) teamSignInButton.addEventListener("click", () => showLogin(""));
   if (publicViewButton) publicViewButton.addEventListener("click", () => showWorkspace(null));
+
+  // Keep the overview tied to saved Firestore records; never invent sample readings.
+  function dashboardDate(value) {
+    if (!value) return null;
+    const date = typeof value.toDate === "function" ? value.toDate() : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function renderDashboard() {
+    const activeLocations = cachedLocations.filter(item => String(item.status || "").toLowerCase() === "active");
+    const recentWindowMs = 5 * 60 * 1000;
+    const now = Date.now();
+    const latestByDevice = new Map();
+    [...cachedObservations].sort((a, b) => {
+      const ad = dashboardDate(a.timestamp || a.createdAt);
+      const bd = dashboardDate(b.timestamp || b.createdAt);
+      return (bd ? bd.getTime() : 0) - (ad ? ad.getTime() : 0);
+    }).forEach(item => {
+      if (item.deviceId && !latestByDevice.has(item.deviceId)) latestByDevice.set(item.deviceId, item);
+    });
+    const recentlyReporting = cachedDevices.filter(device => {
+      const latest = latestByDevice.get(device.id);
+      if (!latest || latest.isSimulated) return false;
+      const date = dashboardDate(latest.timestamp || latest.createdAt);
+      const age = date ? now - date.getTime() : Infinity;
+      return age >= 0 && age <= recentWindowMs;
+    }).length;
+    const openAlerts = cachedAlerts.filter(alert => alert.status !== "resolved");
+
+    const setValue = (id, value) => {
+      const element = document.getElementById(id);
+      if (element) element.textContent = String(value);
+    };
+    setValue("dashboardActiveLocations", activeLocations.length);
+    setValue("dashboardDeviceTotal", cachedDevices.length);
+    setValue("dashboardRecentDevices", recentlyReporting);
+    setValue("dashboardOpenAlerts", openAlerts.length);
+
+    const readingsList = document.getElementById("dashboardLatestReadings");
+    if (readingsList) {
+      readingsList.innerHTML = "";
+      const recentObservations = [...cachedObservations].sort((a, b) => {
+        const ad = dashboardDate(a.timestamp || a.createdAt);
+        const bd = dashboardDate(b.timestamp || b.createdAt);
+        return (bd ? bd.getTime() : 0) - (ad ? ad.getTime() : 0);
+      }).slice(0, 5);
+      if (!recentObservations.length) {
+        readingsList.innerHTML = '<p class="dashboard-empty-text">No sensor readings recorded yet.</p>';
+      } else {
+        recentObservations.forEach(observation => {
+          const device = cachedDevices.find(item => item.id === observation.deviceId);
+          const location = cachedLocations.find(item => item.id === observation.locationId) ||
+            (device ? cachedLocations.find(item => item.id === device.locationId) : null);
+          const raw = observation.rawValue ?? observation.rawAdc ?? observation.raw_adc;
+          const row = document.createElement("article");
+          row.className = "dashboard-record";
+          const main = document.createElement("div");
+          const title = document.createElement("strong");
+          title.textContent = location ? location.name : (device ? device.deviceId : "Unassigned reading");
+          const meta = document.createElement("span");
+          meta.textContent = (device ? device.deviceId : "Device not linked") + " · " + formatAlertTime(observation.timestamp || observation.createdAt);
+          main.append(title, meta);
+          const value = document.createElement("b");
+          value.className = "dashboard-reading-value";
+          value.textContent = raw === undefined || raw === null ? "—" : String(raw) + " ADC";
+          row.append(main, value);
+          if (observation.isSimulated) {
+            const simulated = document.createElement("small");
+            simulated.className = "dashboard-simulated-tag";
+            simulated.textContent = "SIMULATED";
+            row.appendChild(simulated);
+          }
+          readingsList.appendChild(row);
+        });
+      }
+    }
+
+    const alertsList = document.getElementById("dashboardRecentAlerts");
+    if (alertsList) {
+      alertsList.innerHTML = "";
+      const recent = [...cachedAlerts].sort((a, b) => {
+        const ad = dashboardDate(a.createdAt);
+        const bd = dashboardDate(b.createdAt);
+        return (bd ? bd.getTime() : 0) - (ad ? ad.getTime() : 0);
+      }).slice(0, 5);
+      if (!recent.length) {
+        alertsList.innerHTML = '<p class="dashboard-empty-text">No alerts recorded yet.</p>';
+      } else {
+        recent.forEach(alert => {
+          const row = document.createElement("article");
+          row.className = "dashboard-record";
+          const main = document.createElement("div");
+          const title = document.createElement("strong");
+          title.textContent = alert.classroomName || "Unknown location";
+          const meta = document.createElement("span");
+          meta.textContent = formatAlertTime(alert.createdAt) + " · " +
+            (Number.isFinite(Number(alert.rawAdc)) ? alert.rawAdc + " ADC" : "Reading unavailable");
+          main.append(title, meta);
+          const status = document.createElement("b");
+          status.className = "dashboard-alert-status " + (alert.status || "open");
+          status.textContent = alert.status === "resolved" ? "Resolved" :
+            alert.status === "acknowledged" ? "Acknowledged" : "Open";
+          row.append(main, status);
+          alertsList.appendChild(row);
+        });
+      }
+    }
+
+    const locationsList = document.getElementById("dashboardLocationLinks");
+    if (locationsList) {
+      locationsList.innerHTML = "";
+      if (!cachedLocations.length) {
+        locationsList.innerHTML = '<p class="dashboard-empty-text">No locations added yet.</p>';
+      } else {
+        cachedLocations.forEach(location => {
+          const link = document.createElement("a");
+          link.className = "dashboard-location-link";
+          link.href = "#locations";
+          const name = document.createElement("strong");
+          name.textContent = location.name || "Unnamed location";
+          const status = document.createElement("span");
+          status.textContent = location.status || "planned";
+          link.append(name, status);
+          locationsList.appendChild(link);
+        });
+      }
+    }
+  }
 
   // The dashboard is public by default. Firebase authentication only unlocks team editing.
   function renderLocations(locations) {
@@ -297,6 +426,7 @@
       populateAlertLocations(locations);
       populateRecordLocationSelects(locations);
       renderLocations(locations);
+      renderDashboard();
       if (locationStatus) locationStatus.textContent = locations.length
         ? "Live Firestore data · " + locations.length + " location(s)"
         : "Connected to Firestore · no location records yet";
@@ -444,6 +574,7 @@
     alertUnsubscribe = window.NoiseMap.subscribeAlerts(alerts => {
       cachedAlerts = alerts;
       renderAlerts(alerts);
+      renderDashboard();
       if (alertStatusLine) alertStatusLine.textContent = "Live dashboard · " + alerts.length + " alert record(s)";
     }, error => {
       console.error("Could not load staffroom alerts:", error);
@@ -729,6 +860,7 @@
       cachedDevices = items;
       renderDevices(items);
       renderObservations(cachedObservations);
+      renderDashboard();
     }, error => console.error("Could not load devices:", error));
   }
 
@@ -738,6 +870,7 @@
       cachedObservations = items;
       renderObservations(items);
       renderDevices(cachedDevices);
+      renderDashboard();
     }, error => console.error("Could not load observations:", error));
   }
 
