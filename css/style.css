@@ -174,3 +174,26 @@
 .simulator-disclaimer{font-size:10px;line-height:1.55;color:#9a6425;margin:0}
 
 .device-monitor-status.is-simulated{color:#8a6224;background:#fff2dc}
+
+/* Data-driven dashboard overview */
+.dashboard-data-note{font-size:10px;color:#8797a1;margin:-7px 0 17px;line-height:1.6}
+.dashboard-content-grid{align-items:start}
+.dashboard-record-list{margin-top:13px}
+.dashboard-record{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #f0f3f5}
+.dashboard-record:last-child{border-bottom:0}
+.dashboard-record>div{flex:1;min-width:0}
+.dashboard-record strong,.dashboard-record span{display:block}
+.dashboard-record strong{font-size:11px;color:#334d5e;overflow-wrap:anywhere}
+.dashboard-record span{font-size:9px;color:#96a4ad;margin-top:4px;line-height:1.5}
+.dashboard-reading-value{font-size:10px;color:#147e74;white-space:nowrap}
+.dashboard-alert-status{font-size:8px;padding:5px 7px;border-radius:4px;white-space:nowrap;background:#fff3e5;color:#ae7629}
+.dashboard-alert-status.acknowledged{background:#edf3ff;color:#5479b4}
+.dashboard-alert-status.resolved{background:#e7f6f0;color:#23836e}
+.dashboard-simulated-tag{font-size:7px;letter-spacing:.7px;color:#9a6b2a;background:#fff4e4;padding:4px 5px;border-radius:4px}
+.dashboard-empty-text{font-size:10px;color:#9aa7b1;padding:10px 0;margin:0}
+.dashboard-locations-panel{margin-bottom:18px}
+.dashboard-location-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:16px}
+.dashboard-location-link{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;border:1px solid #edf1f3;border-radius:8px;text-decoration:none;background:#fbfcfd}
+.dashboard-location-link strong{font-size:11px;color:#334d5e;overflow-wrap:anywhere}
+.dashboard-location-link span{font-size:8px;text-transform:uppercase;letter-spacing:.6px;color:#168779;background:#e8f6f2;border-radius:4px;padding:5px 6px;white-space:nowrap}
+@media(max-width:700px){.dashboard-location-list{grid-template-columns:1fr}.dashboard-record{align-items:flex-start;flex-wrap:wrap}.dashboard-reading-value{margin-left:auto}}
