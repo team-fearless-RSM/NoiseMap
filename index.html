@@ -44,6 +44,7 @@
         <a class="nav-link" href="#devices" data-page="devices"><span>▣</span> Devices</a>
         <a class="nav-link" href="#history" data-page="history"><span>⌁</span> Historical Data</a>
         <a class="nav-link" href="#actions" data-page="actions"><span>✓</span> Action Tracker</a>
+        <a class="nav-link" href="#future-development" data-page="future-development"><span>↗</span> Future Development</a>
         <a class="nav-link" href="#about" data-page="about"><span>ⓘ</span> About NoiseMap</a>
       </nav>
       <div class="sidebar-bottom">
@@ -108,6 +109,7 @@
           <a class="panel overview-link" href="#history"><strong>Historical Data</strong><span>View recorded observations →</span></a>
           <a class="panel overview-link" href="#actions"><strong>Action Tracker</strong><span>Track verified actions →</span></a>
           <a class="panel overview-link" href="#alerts"><strong>Staffroom Alerts</strong><span>View classroom alerts →</span></a>
+          <a class="panel overview-link" href="#future-development"><strong>Future Development</strong><span>Explore planned sound-source identification →</span></a>
         </div>
         <footer class="footer">
           <span>NoiseMap · A Team Fearless project</span>
@@ -218,7 +220,9 @@
         <div class="firestore-location-list" id="actionList" aria-live="polite"></div>
         <div class="panel empty-panel" id="actionEmpty"><span class="empty-icon">✓</span><h2>No action recommendations yet</h2><p>Automatic recommendations will appear here after a verified device alert. Manual records can still be added for actions that have actually happened.</p></div>
       </section>
-      <section class="page-content secondary-page" id="about"><div class="eyebrow">THE PROJECT</div><h1>About NoiseMap</h1><p class="intro">Making local sound observations easier to understand and act on.</p><div class="panel about-panel"><h2>Our approach</h2><p>NoiseMap is a Team Fearless NRL Changemakers project concept. The goal is to build a system that records observations at selected locations, presents trends over time, and helps the team document awareness and follow-up actions.</p><div class="about-note"><strong>Measurement integrity matters.</strong><p>An LM393 sound sensor provides threshold and analogue signal information; its raw readings are not calibrated sound-pressure measurements. NoiseMap will only display dB or dB(A) if suitable calibrated measurement hardware and a documented calibration method are implemented.</p></div></div></section>
+      <section class="page-content secondary-page" id="about"><div class="eyebrow">THE PROJECT</div><h1>About NoiseMap</h1><p class="intro">Making local sound observations easier to understand and act on.</p><div class="panel about-panel"><h2>Our approach</h2><p>NoiseMap is a Team Fearless NRL Changemakers project concept. The goal is to build a system that records observations at selected locations, presents trends over time, and helps the team document awareness and follow-up actions.</p><div class="about-note"><strong>Measurement integrity matters.</strong><p>The current LM393-based prototype detects sound activity and provides raw sensor readings. These readings represent combined sound from the surroundings; they do not identify individual sources and are not calibrated sound-pressure measurements. NoiseMap will only display dB or dB(A) if suitable calibrated measurement hardware and a documented calibration method are implemented.</p></div></div></section>
+
+      <section class="page-content secondary-page" id="future-development"><div class="eyebrow">ROADMAP · PLANNED RESEARCH</div><h1>Future Development</h1><p class="intro">Moving from measuring surrounding noise to exploring what may be causing it.</p><div class="panel about-panel"><h2>Sound-source identification</h2><p><strong>Current capability:</strong> The prototype measures combined sound activity from its surroundings. It cannot currently distinguish traffic, machinery, people talking, or other individual sources.</p><div class="about-note"><strong>Future goal: AI-based sound classification</strong><p>We plan to explore sound-classification technology that could analyse labelled audio samples and recognise broad categories of sound, such as traffic, machinery, or human activity. This would be a research and development step; it is not a feature of the current prototype.</p></div><h2 style="margin-top:22px">Possible development pathway</h2><p><strong>1. Collect labelled samples:</strong> Build a dataset of representative audio samples from different sound categories.</p><p><strong>2. Explore model training:</strong> Evaluate machine-learning approaches that can learn patterns from the labelled samples.</p><p><strong>3. Integrate predictions:</strong> If testing is successful, show the model's predicted sound category alongside the measured noise observations, with clear confidence and limitations.</p><div class="about-note"><strong>Responsible development</strong><p>Any future audio collection would need appropriate permissions, privacy safeguards, and testing in real environments. A predicted category would be an estimate, not proof of the exact source.</p></div></div></section>
     </main>
   </div>
 
