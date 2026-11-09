@@ -1057,3 +1057,41 @@ button:hover,.signout-button:hover,.team-login-button:hover,
   font-weight:800!important;
   text-shadow:0 0 12px rgba(255,255,255,.12);
 }
+
+/* LIVE LOCATION STATUS: green active badge with a subtle heartbeat pulse */
+.dashboard-location-link .location-live-status.is-active {
+  display:inline-flex!important;
+  align-items:center;
+  gap:7px;
+  color:#72ffc0!important;
+  background:rgba(16,185,105,.10)!important;
+  border:1px solid rgba(67,245,151,.58)!important;
+  border-radius:999px!important;
+  padding:6px 10px!important;
+  font-weight:800!important;
+  letter-spacing:.8px;
+  box-shadow:0 0 0 1px rgba(50,240,140,.08),0 0 14px rgba(34,220,125,.16)!important;
+  animation:locationActiveGlow 1.8s ease-in-out infinite;
+}
+.dashboard-location-link .location-live-status.is-active:before {
+  content:"";
+  width:7px;
+  height:7px;
+  flex:none;
+  border-radius:50%;
+  background:#48ff9a;
+  box-shadow:0 0 8px #48ff9a,0 0 15px rgba(72,255,154,.8);
+  animation:locationActiveDot 1.2s ease-in-out infinite;
+}
+@keyframes locationActiveGlow {
+  0%,100% { box-shadow:0 0 0 1px rgba(50,240,140,.08),0 0 9px rgba(34,220,125,.12); }
+  50% { box-shadow:0 0 0 1px rgba(50,240,140,.2),0 0 22px rgba(34,220,125,.34); }
+}
+@keyframes locationActiveDot {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:.38; transform:scale(.78); }
+}
+@media(prefers-reduced-motion:reduce) {
+  .dashboard-location-link .location-live-status.is-active,
+  .dashboard-location-link .location-live-status.is-active:before { animation:none!important; }
+}
