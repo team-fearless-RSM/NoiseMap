@@ -39,6 +39,7 @@
       <div class="side-label">WORKSPACE</div>
       <nav class="nav-list" aria-label="Main navigation">
         <a class="nav-link active" href="#overview" data-page="overview"><span>◫</span> Overview</a>
+        <a class="nav-link" href="#live-monitoring" data-page="live-monitoring"><span>◉</span> Live Monitoring</a>
         <a class="nav-link" href="#locations" data-page="locations"><span>⌖</span> Locations</a>
         <a class="nav-link" href="#alerts" data-page="alerts"><span>!</span> Staffroom Alerts</a>
         <a class="nav-link" href="#devices" data-page="devices"><span>▣</span> Devices</a>
@@ -124,6 +125,37 @@
         </footer>
       </section>
 
+
+      <section class="page-content secondary-page" id="live-monitoring">
+        <div class="eyebrow">NOISEMAP · MONITORING</div>
+        <div class="live-monitor-heading">
+          <div><h1>Live Monitoring</h1><p class="intro">Track saved sensor observations as they arrive in Firestore.</p></div>
+          <span class="live-monitor-connection" id="liveMonitorConnection">Connecting to Firestore…</span>
+        </div>
+        <p class="live-monitor-disclaimer">Live dashboard updates reflect saved records, not a guaranteed continuous hardware connection. Only non-simulated observations appear in the monitoring trend. Values are raw ADC (0–1023), not dB or dB(A).</p>
+        <div class="live-monitor-controls panel">
+          <div><label for="liveMonitorRange">Time range</label><select id="liveMonitorRange"><option value="24">Last 24 hours</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option></select></div>
+          <div><label for="liveMonitorLocation">Monitoring location</label><select id="liveMonitorLocation"><option value="all">All locations</option></select></div>
+        </div>
+        <div class="live-monitor-kpis">
+          <article class="stat-card"><div class="stat-top"><span>Latest real reading</span><span class="stat-icon teal">●</span></div><div class="stat-value" id="liveLatestValue">—</div><div class="stat-foot" id="liveLatestTime">No verified reading yet</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Real readings in range</span><span class="stat-icon blue">⌁</span></div><div class="stat-value" id="liveReadingCount">0</div><div class="stat-foot">Simulated records excluded</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Reporting devices</span><span class="stat-icon violet">◉</span></div><div class="stat-value" id="liveReportingDevices">0</div><div class="stat-foot">Real reading saved in last 5 minutes</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Test readings</span><span class="stat-icon amber">!</span></div><div class="stat-value" id="liveTestCount">0</div><div class="stat-foot">Shown separately; not environmental evidence</div></article>
+        </div>
+        <section class="panel live-monitor-chart-panel">
+          <div class="panel-heading"><div><h2>Raw sensor trend</h2><p id="liveChartSubtitle">Non-simulated readings · ADC 0–1023</p></div><span class="live-chart-key"><i></i> Real observations</span></div>
+          <div class="live-chart-wrap" id="liveChartWrap"><p class="dashboard-empty-text">Waiting for real sensor observations. Simulator readings are excluded from this graph.</p></div>
+        </section>
+        <section class="panel live-monitor-table-panel">
+          <div class="panel-heading"><div><h2>Latest real observations</h2><p>Most recent non-simulated records for the selected range</p></div></div>
+          <div id="liveRealReadings" class="live-monitor-records"><p class="dashboard-empty-text">No real observations recorded yet.</p></div>
+        </section>
+        <section class="panel live-monitor-table-panel live-test-panel">
+          <div class="panel-heading"><div><h2>Simulated / test observations</h2><p>Kept separate from the real monitoring trend</p></div><span class="simulator-badge">TEST ONLY</span></div>
+          <div id="liveTestReadings" class="live-monitor-records"><p class="dashboard-empty-text">No simulated observations in this range.</p></div>
+        </section>
+      </section>
       <section class="page-content secondary-page" id="locations">
         <div class="eyebrow">WORKSPACE</div>
         <h1>Locations</h1>
