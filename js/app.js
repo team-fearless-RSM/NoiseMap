@@ -1289,7 +1289,7 @@
       list.appendChild(recordCard(
         device.deviceId || "Unnamed device",
         device.hardware || "Hardware not specified",
-        "Location: " + (location ? location.name : "Not linked") + " · Connection: " + heartbeat.label + " · " + heartbeat.detail,
+        "Location: " + (location ? location.name : "Not linked") + " · Connection: " + heartbeat.label + " · " + heartbeat.detail + " · Firestore document ID: " + device.id,
         "Device", device.id
       ));
     });
