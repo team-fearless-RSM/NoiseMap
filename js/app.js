@@ -1204,6 +1204,9 @@
   }
 
   function getDeviceHeartbeatState(device, now = Date.now()) {
+    if (device && String(device.connectionStatus || "").toLowerCase() === "planned") {
+      return { online: false, label: "Planned", detail: "Device is registered but not activated yet" };
+    }
     const value = device && device.lastHeartbeatAt;
     if (!value) {
       return { online: false, label: "Offline", detail: "No heartbeat received yet" };
@@ -1296,7 +1299,9 @@
 
     if (totalEl) totalEl.textContent = String(devices.length);
     if (recentEl) recentEl.textContent = String(recentCount);
-    if (waitingEl) waitingEl.textContent = String(devices.length - recentCount);
+    if (waitingEl) waitingEl.textContent = String(devices.filter(device =>
+      String(device.connectionStatus || "").toLowerCase() !== "planned"
+    ).length - recentCount);
     if (noteEl) noteEl.textContent = devices.length
       ? "Online means an authenticated heartbeat reached Apps Script within the last 2 minutes. A missing or stale heartbeat is Offline. Last-reading time is shown separately. ADC values are raw readings, not dB/dB(A)."
       : "No devices are registered yet. Add a device below to begin tracking its connection status.";
