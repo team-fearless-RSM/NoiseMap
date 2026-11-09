@@ -803,3 +803,70 @@ input,select,textarea { accent-color:#55f4e0; }
   .staff-alert-card { padding:18px; }
   .device-monitor-card { min-height:205px; }
 }
+
+
+/* READABILITY FIX: force dark surfaces and high-contrast text on alert/device panels */
+.staff-alert-card {
+  color:#f5fbff!important;
+  background-color:#101e2d!important;
+  background-image:
+    linear-gradient(90deg,rgba(7,19,32,.98) 0%,rgba(7,23,38,.95) 72%,rgba(7,23,38,.82) 100%),
+    url("https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=85")!important;
+  background-position:center,center 48%!important;
+  background-size:cover,cover!important;
+}
+.staff-alert-card.is-resolved {
+  background-color:#0c292b!important;
+  background-image:
+    linear-gradient(90deg,rgba(5,30,32,.98) 0%,rgba(6,35,39,.95) 72%,rgba(6,35,39,.82) 100%),
+    url("https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=85")!important;
+}
+.staff-alert-card h3,.staff-alert-card p,.staff-alert-card .staff-alert-detail,
+.staff-alert-card .staff-alert-top p {
+  color:#f2f8fc!important;
+}
+.staff-alert-card .staff-alert-status {
+  color:#ffffff!important;
+  background:rgba(13,31,47,.94)!important;
+  border:1px solid rgba(180,220,240,.42)!important;
+}
+.staff-alert-card .staff-alert-actions button {
+  color:#f5fbff!important;
+  background:#102b40!important;
+  border:1px solid rgba(112,220,226,.55)!important;
+}
+.staff-alert-card .staff-alert-actions button:hover {
+  color:#061b29!important;
+  background:#67efdf!important;
+}
+.device-monitor-card {
+  color:#f5fbff!important;
+  background-color:#081b2b!important;
+  background-image:
+    linear-gradient(90deg,rgba(5,18,31,.99) 0%,rgba(5,23,39,.96) 72%,rgba(5,23,39,.88) 100%),
+    url("https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=85")!important;
+  background-position:center,center!important;
+  background-size:cover,cover!important;
+  border:1px solid rgba(83,220,220,.36)!important;
+}
+.device-monitor-card h3,.device-monitor-card p,
+.device-monitor-card .device-monitor-meta,
+.device-monitor-card .device-monitor-unit {
+  color:#eaf5fc!important;
+}
+.device-monitor-card .device-monitor-reading {
+  color:#72f5df!important;
+}
+.device-monitor-card .device-monitor-status {
+  color:#ffffff!important;
+  background:rgba(5,24,38,.96)!important;
+  border:1px solid rgba(132,205,224,.48)!important;
+}
+.device-monitor-card .device-monitor-status.is-online {
+  color:#82ffe5!important;
+  border-color:rgba(82,255,215,.65)!important;
+}
+.device-monitor-card .device-monitor-status.is-offline {
+  color:#ffd2a5!important;
+  border-color:rgba(255,190,125,.65)!important;
+}
