@@ -50,6 +50,7 @@
   let simulatorInterval = null;
   let simulatorSessionId = null;
   let simulatorReadingCount = 0;
+  const NM_HEARTBEAT_TIMEOUT_MS = 120000;
 
   function connectVisitorCounter() {
     if (!window.NoiseMap || !window.NoiseMap.configured) return;
@@ -499,13 +500,9 @@
     }).forEach(item => {
       if (item.deviceId && !latestByDevice.has(item.deviceId)) latestByDevice.set(item.deviceId, item);
     });
-    const recentlyReporting = cachedDevices.filter(device => {
-      const latest = latestByDevice.get(device.id);
-      if (!latest || latest.isSimulated) return false;
-      const date = dashboardDate(latest.timestamp || latest.createdAt);
-      const age = date ? now - date.getTime() : Infinity;
-      return age >= 0 && age <= recentWindowMs;
-    }).length;
+    const recentlyReporting = cachedDevices.filter(device =>
+      getDeviceHeartbeatState(device, now).online
+    ).length;
     const openAlerts = cachedAlerts.filter(alert => alert.status !== "resolved");
 
     const setValue = (id, value) => {
@@ -760,7 +757,7 @@
 
     const statusNote = document.createElement("p");
     statusNote.className = "location-detail-note";
-    statusNote.textContent = "Sensor status is based on the newest saved observation, not a continuous hardware heartbeat. Raw ADC readings are not dB or dB(A).";
+    statusNote.textContent = "Connection status is based on an authenticated server heartbeat: Online for up to 2 minutes after the last heartbeat, otherwise Offline. Raw ADC readings are not dB or dB(A).";
     section.appendChild(statusNote);
 
     const devicePanel = document.createElement("section");
@@ -780,11 +777,12 @@
         const status = document.createElement("span");
         const latest = latestByDevice.find(item => item.device.id === device.id)?.latest;
         const date = locationReadingDate(latest);
-        const recent = !!latest && !latest.isSimulated && !!date && Date.now() - date.getTime() >= 0 && Date.now() - date.getTime() <= 5 * 60 * 1000;
-        status.textContent = latest ? (latest.isSimulated ? "Simulated test only" : recent ? "Recent reading" : "No recent data") : "Awaiting data";
+        const heartbeat = getDeviceHeartbeatState(device);
+        status.className = "device-monitor-status " + (heartbeat.online ? "is-online" : "is-offline");
+        status.textContent = heartbeat.label;
         row.append(name,status);
         const meta = document.createElement("small");
-        meta.textContent = (device.hardware || "Hardware not specified") + " · Last reading: " + (latest ? formatAlertTime(latest.timestamp || latest.createdAt) : "Not recorded");
+        meta.textContent = (device.hardware || "Hardware not specified") + " · " + heartbeat.detail + " · Last reading: " + (latest ? formatAlertTime(latest.timestamp || latest.createdAt) : "Not recorded");
         row.appendChild(meta); devicePanel.appendChild(row);
       });
     }
@@ -1205,6 +1203,28 @@
     return card;
   }
 
+  function getDeviceHeartbeatState(device, now = Date.now()) {
+    const value = device && device.lastHeartbeatAt;
+    if (!value) {
+      return { online: false, label: "Offline", detail: "No heartbeat received yet" };
+    }
+    const date = typeof value.toDate === "function" ? value.toDate() : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return { online: false, label: "Offline", detail: "Heartbeat timestamp unavailable" };
+    }
+    const ageMs = now - date.getTime();
+    if (ageMs < 0) {
+      return { online: false, label: "Offline", detail: "Heartbeat timestamp is in the future" };
+    }
+    if (ageMs <= NM_HEARTBEAT_TIMEOUT_MS) {
+      return { online: true, label: "Online", detail: "Last heartbeat: " + formatAlertTime(value) };
+    }
+    const ageMinutes = Math.floor(ageMs / 60000);
+    const ageText = ageMinutes < 60 ? ageMinutes + " min ago" :
+      Math.floor(ageMinutes / 60) + " hr ago";
+    return { online: false, label: "Offline", detail: "Last heartbeat: " + ageText };
+  }
+
   function renderDevices(devices) {
     const list = document.getElementById("deviceList");
     const empty = document.getElementById("deviceEmpty");
@@ -1219,7 +1239,6 @@
     if (monitorGrid) monitorGrid.innerHTML = "";
     let recentCount = 0;
     const now = Date.now();
-    const recentWindowMs = 5 * 60 * 1000;
 
     devices.forEach(device => {
       const location = cachedLocations.find(item => item.id === device.locationId);
@@ -1230,7 +1249,8 @@
         ? (typeof timeValue.toDate === "function" ? timeValue.toDate() : new Date(timeValue))
         : null;
       const ageMs = readingDate && !Number.isNaN(readingDate.getTime()) ? now - readingDate.getTime() : Infinity;
-      const isRecent = ageMs >= 0 && ageMs <= recentWindowMs;
+      const heartbeat = getDeviceHeartbeatState(device, now);
+      const isRecent = heartbeat.online;
       if (isRecent) recentCount++;
 
       if (monitorGrid) {
@@ -1241,8 +1261,8 @@
         const name = document.createElement("h3");
         name.textContent = device.deviceId || "Unnamed device";
         const status = document.createElement("span");
-        status.className = "device-monitor-status " + (isRecent ? "is-recent" : latest ? "is-stale" : "is-waiting");
-        status.textContent = latest && latest.isSimulated ? "Simulated test" : isRecent ? "Recent reading" : latest ? "No recent reading" : "Awaiting data";
+        status.className = "device-monitor-status " + (isRecent ? "is-online" : "is-offline");
+        status.textContent = heartbeat.label;
         top.append(name, status);
         const reading = document.createElement("div");
         reading.className = "device-monitor-reading";
@@ -1256,17 +1276,20 @@
         const lastSeen = document.createElement("p");
         lastSeen.className = "device-monitor-meta";
         lastSeen.textContent = "Last reading: " + (latest ? formatAlertTime(timeValue) : "No reading recorded");
+        const heartbeatMeta = document.createElement("p");
+        heartbeatMeta.className = "device-monitor-meta";
+        heartbeatMeta.textContent = heartbeat.detail;
         const hardware = document.createElement("p");
         hardware.className = "device-monitor-meta";
         hardware.textContent = "Hardware: " + (device.hardware || "Not specified");
-        card.append(top, reading, unit, locationText, lastSeen, hardware);
+        card.append(top, reading, unit, locationText, lastSeen, heartbeatMeta, hardware);
         monitorGrid.appendChild(card);
       }
 
       list.appendChild(recordCard(
         device.deviceId || "Unnamed device",
         device.hardware || "Hardware not specified",
-        "Location: " + (location ? location.name : "Not linked") + " · Registered status: " + (device.connectionStatus || "unknown"),
+        "Location: " + (location ? location.name : "Not linked") + " · Connection: " + heartbeat.label + " · " + heartbeat.detail,
         "Device", device.id
       ));
     });
@@ -1275,8 +1298,8 @@
     if (recentEl) recentEl.textContent = String(recentCount);
     if (waitingEl) waitingEl.textContent = String(devices.length - recentCount);
     if (noteEl) noteEl.textContent = devices.length
-      ? "A recent reading means an observation was saved within the last 5 minutes. This is not proof of a continuous device connection. ADC values are raw readings, not dB/dB(A)."
-      : "No devices are registered yet. Add a device below to begin tracking its saved observations.";
+      ? "Online means an authenticated heartbeat reached Apps Script within the last 2 minutes. A missing or stale heartbeat is Offline. Last-reading time is shown separately. ADC values are raw readings, not dB/dB(A)."
+      : "No devices are registered yet. Add a device below to begin tracking its connection status.";
     populateDeviceSelects(devices);
   }
 
@@ -1333,6 +1356,13 @@
       ));
     });
   }
+
+  // Re-evaluate heartbeat age even when Firestore has no new snapshot.
+  window.setInterval(() => {
+    renderDevices(cachedDevices);
+    renderLocationDetailPages();
+    renderDashboard();
+  }, 15000);
 
   function connectDevices() {
     if (!window.NoiseMap || !window.NoiseMap.configured) return;
