@@ -152,6 +152,8 @@
 .device-monitor-card-top h3{font:700 13px Manrope,sans-serif;color:#294354;margin:2px 0 12px;overflow-wrap:anywhere}
 .device-monitor-status{font-size:8px;font-weight:700;border-radius:20px;padding:5px 7px;white-space:nowrap}
 .device-monitor-status.is-recent{color:#087a68;background:#e5f7f1}
+.device-monitor-status.is-online{color:#087a68;background:#e5f7f1}
+.device-monitor-status.is-offline{color:#9a6425;background:#fff4df}
 .device-monitor-status.is-stale{color:#9a6425;background:#fff4df}
 .device-monitor-status.is-waiting{color:#667984;background:#edf2f4}
 .device-monitor-reading{font:700 31px Manrope,sans-serif;color:#147f83;line-height:1.15}
