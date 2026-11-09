@@ -228,3 +228,7 @@
 .live-test-panel{border:1px dashed #e5c98e;background:#fffdf8}
 @media(max-width:900px){.live-monitor-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.live-monitor-controls{grid-template-columns:1fr}.live-monitor-heading h1{font-size:24px}.live-monitor-chart-panel,.live-monitor-table-panel{padding:15px}.live-monitor-row{align-items:flex-start;flex-wrap:wrap}.live-monitor-row b{margin-left:auto}}
+
+
+/* Location history date-range controls */
+.location-range-controls{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin:16px 0;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:9px}.location-range-controls label{font-size:10px;font-weight:700;color:#526978}.location-range-controls select{min-width:180px;padding:9px 10px;border:1px solid #dce5ea;border-radius:7px;background:#fff;color:var(--ink);font:11px "DM Sans",sans-serif}@media(max-width:560px){.location-range-controls{align-items:stretch;flex-direction:column}.location-range-controls select{width:100%}}
