@@ -154,6 +154,9 @@ window.NOISEMAP_FIREBASE_CONFIG = {
     }),
     subscribeObservations: (onData, onError) => db.collection("observations").orderBy("timestamp", "desc").limit(300)
       .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
+    // Endpoint tests are isolated from live observations and readable only by allowlisted team members.
+    subscribeEndpointTests: (onData, onError) => db.collection("endpoint_test_observations").limit(25)
+      .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
     deleteObservation: observationId => {
       if (!auth.currentUser) throw new Error("Sign in with an authorised team account first.");
       return db.collection("observations").doc(observationId).delete();
