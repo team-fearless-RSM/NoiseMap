@@ -818,7 +818,7 @@
         line.setAttribute("stroke-linecap","round"); line.setAttribute("stroke-linejoin","round");
         svg.appendChild(line);
         const minLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
-        minLabel.setAttribute("x","24"); minLabel.setAttribute("y","170"); minLabel.textContent = "Min " + min + " ADC";
+        minLabel.setAttribute("x","24"); minLabel.setAttribute("y","34"); minLabel.textContent = "Min " + min + " ADC";
         const maxLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
         maxLabel.setAttribute("x","576"); maxLabel.setAttribute("y","16"); maxLabel.setAttribute("text-anchor","end"); maxLabel.textContent = "Max " + max + " ADC";
         svg.append(minLabel,maxLabel);
