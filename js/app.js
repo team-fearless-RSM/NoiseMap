@@ -256,7 +256,147 @@
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
+
+  function renderLiveMonitoring() {
+    const rangeSelect = document.getElementById("liveMonitorRange");
+    const locationSelect = document.getElementById("liveMonitorLocation");
+    const chartWrap = document.getElementById("liveChartWrap");
+    if (!rangeSelect || !chartWrap) return;
+    const rangeDays = Number(rangeSelect.value || 7);
+    const selectedLocation = locationSelect ? locationSelect.value : "all";
+    const now = Date.now();
+    const cutoff = now - rangeDays * 24 * 60 * 60 * 1000;
+    const parseDate = item => dashboardDate(item.timestamp || item.createdAt);
+    const matchesLocation = item => {
+      if (selectedLocation === "all") return true;
+      const device = cachedDevices.find(entry => entry.id === item.deviceId);
+      return item.locationId === selectedLocation || (!item.locationId && device && device.locationId === selectedLocation);
+    };
+    const inRange = cachedObservations.filter(item => {
+      const date = parseDate(item);
+      return date && date.getTime() >= cutoff && date.getTime() <= now && matchesLocation(item);
+    });
+    const real = inRange.filter(item => item.isSimulated !== true && item.source !== "browser_simulator" &&
+      Number.isFinite(Number(item.rawValue ?? item.rawAdc ?? item.raw_adc)));
+    const tests = inRange.filter(item => item.isSimulated === true || item.source === "browser_simulator");
+    const sortedReal = [...real].sort((a,b) => parseDate(a) - parseDate(b));
+    const latest = sortedReal[sortedReal.length - 1] || null;
+    const setText = (id,value) => { const el=document.getElementById(id); if(el) el.textContent=String(value); };
+    setText("liveLatestValue", latest ? String(latest.rawValue ?? latest.rawAdc ?? latest.raw_adc) + " ADC" : "—");
+    setText("liveLatestTime", latest ? formatAlertTime(latest.timestamp || latest.createdAt) : "No verified reading yet");
+    setText("liveReadingCount", real.length);
+    setText("liveTestCount", tests.length);
+    const recentDeviceIds = new Set();
+    cachedDevices.forEach(device => {
+      const latestForDevice = [...cachedObservations].filter(item => item.deviceId === device.id &&
+        item.isSimulated !== true && item.source !== "browser_simulator")
+        .sort((a,b) => (parseDate(b)?.getTime() || 0) - (parseDate(a)?.getTime() || 0))[0];
+      const date = latestForDevice && parseDate(latestForDevice);
+      if (date && now - date.getTime() >= 0 && now - date.getTime() <= 5 * 60 * 1000 &&
+          (selectedLocation === "all" || device.locationId === selectedLocation)) recentDeviceIds.add(device.id);
+    });
+    setText("liveReportingDevices", recentDeviceIds.size);
+    const connection = document.getElementById("liveMonitorConnection");
+    if (connection) connection.textContent = "Firestore updates · " + cachedObservations.length + " saved observation(s) loaded";
+    const subtitle = document.getElementById("liveChartSubtitle");
+    if (subtitle) subtitle.textContent = "Last " + rangeDays + (rangeDays === 1 ? " day" : " days") + " · " + real.length + " real observation(s) · raw ADC";
+    chartWrap.innerHTML = "";
+    if (sortedReal.length < 2) {
+      const empty = document.createElement("p");
+      empty.className = "dashboard-empty-text";
+      empty.textContent = sortedReal.length === 1
+        ? "One real observation is available. A trend line will appear after another real reading is saved."
+        : "No real sensor observations in this time range. Simulated readings are excluded from this graph.";
+      chartWrap.appendChild(empty);
+    } else {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+      svg.setAttribute("viewBox","0 0 760 250"); svg.setAttribute("role","img");
+      svg.setAttribute("aria-label","Raw ADC trend for non-simulated sensor observations");
+      const values = sortedReal.map(item => Number(item.rawValue ?? item.rawAdc ?? item.raw_adc));
+      const min = Math.min(...values), max = Math.max(...values), span = Math.max(1,max-min);
+      [0,1,2,3].forEach(i => {
+        const y = 25 + i*58;
+        const grid = document.createElementNS("http://www.w3.org/2000/svg","line");
+        grid.setAttribute("x1","48"); grid.setAttribute("x2","735");
+        grid.setAttribute("y1",String(y)); grid.setAttribute("y2",String(y));
+        grid.setAttribute("stroke","#e8eff1"); grid.setAttribute("stroke-dasharray","4 5");
+        svg.appendChild(grid);
+      });
+      const points = values.map((value,index) => {
+        const x = 48 + index * (687 / Math.max(1,values.length-1));
+        const y = 205 - ((value-min)/span)*160;
+        return x.toFixed(1)+","+y.toFixed(1);
+      }).join(" ");
+      const line = document.createElementNS("http://www.w3.org/2000/svg","polyline");
+      line.setAttribute("points",points); line.setAttribute("fill","none");
+      line.setAttribute("stroke","#16a899"); line.setAttribute("stroke-width","3");
+      line.setAttribute("stroke-linecap","round"); line.setAttribute("stroke-linejoin","round");
+      svg.appendChild(line);
+      values.forEach((value,index) => {
+        const x = 48 + index * (687 / Math.max(1,values.length-1));
+        const y = 205 - ((value-min)/span)*160;
+        const dot = document.createElementNS("http://www.w3.org/2000/svg","circle");
+        dot.setAttribute("cx",String(x)); dot.setAttribute("cy",String(y)); dot.setAttribute("r","3.5");
+        dot.setAttribute("fill","#0d887d"); svg.appendChild(dot);
+      });
+      const maxLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
+      maxLabel.setAttribute("x","8"); maxLabel.setAttribute("y","30"); maxLabel.textContent=String(max);
+      const minLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
+      minLabel.setAttribute("x","8"); minLabel.setAttribute("y","208"); minLabel.textContent=String(min);
+      svg.append(maxLabel,minLabel); chartWrap.appendChild(svg);
+      const note = document.createElement("p"); note.className="live-chart-footnote";
+      note.textContent="Observed range: "+min+"–"+max+" ADC. Each point is a saved observation; this is not a calibrated sound-pressure graph.";
+      chartWrap.appendChild(note);
+    }
+    const renderRows = (containerId,items,isTest) => {
+      const container=document.getElementById(containerId);
+      if(!container) return;
+      container.innerHTML="";
+      const rows=[...items].sort((a,b)=>(parseDate(b)?.getTime()||0)-(parseDate(a)?.getTime()||0)).slice(0,12);
+      if(!rows.length) {
+        const empty=document.createElement("p"); empty.className="dashboard-empty-text";
+        empty.textContent=isTest?"No simulated observations in this range.":"No real observations in this range.";
+        container.appendChild(empty); return;
+      }
+      rows.forEach(item=>{
+        const device=cachedDevices.find(entry=>entry.id===item.deviceId);
+        const location=cachedLocations.find(entry=>entry.id===item.locationId) ||
+          (device?cachedLocations.find(entry=>entry.id===device.locationId):null);
+        const row=document.createElement("div"); row.className="live-monitor-row";
+        const main=document.createElement("div");
+        const title=document.createElement("strong"); title.textContent=(location?location.name:"Unassigned location")+" · "+(device?device.deviceId:"Unlinked device");
+        const meta=document.createElement("span"); meta.textContent=formatAlertTime(item.timestamp||item.createdAt)+" · "+(item.source||"source not specified");
+        const value=document.createElement("b"); value.textContent=String(item.rawValue??item.rawAdc??item.raw_adc??"—")+" ADC";
+        main.append(title,meta); row.append(main,value);
+        if(isTest){const tag=document.createElement("small");tag.className="dashboard-simulated-tag";tag.textContent="SIMULATED";row.appendChild(tag);}
+        container.appendChild(row);
+      });
+    };
+    renderRows("liveRealReadings",real,false);
+    renderRows("liveTestReadings",tests,true);
+  }
+
+  const liveRangeControl = document.getElementById("liveMonitorRange");
+  const liveLocationControl = document.getElementById("liveMonitorLocation");
+  if (liveRangeControl) liveRangeControl.addEventListener("change", renderLiveMonitoring);
+  if (liveLocationControl) liveLocationControl.addEventListener("change", renderLiveMonitoring);
+
+  function populateLiveMonitoringLocations(locations) {
+    const select = document.getElementById("liveMonitorLocation");
+    if (!select) return;
+    const previous = select.value || "all";
+    select.innerHTML = '<option value="all">All locations</option>';
+    locations.forEach(location => {
+      const option = document.createElement("option");
+      option.value = location.id;
+      option.textContent = location.name || "Unnamed location";
+      select.appendChild(option);
+    });
+    select.value = locations.some(location => location.id === previous) ? previous : "all";
+  }
+
   function renderDashboard() {
+    renderLiveMonitoring();
     const activeLocations = cachedLocations.filter(item => String(item.status || "").toLowerCase() === "active");
     const recentWindowMs = 5 * 60 * 1000;
     const now = Date.now();
@@ -630,6 +770,8 @@
     locationUnsubscribe = window.NoiseMap.subscribeLocations(locations => {
       cachedLocations = locations;
       populateAlertLocations(locations);
+      populateLiveMonitoringLocations(locations);
+      renderLiveMonitoring();
       populateRecordLocationSelects(locations);
       renderLocations(locations);
       renderLocationDetailPages();
