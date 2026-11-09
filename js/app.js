@@ -348,6 +348,96 @@
       note.textContent="Observed range: "+min+"–"+max+" ADC. Each point is a saved observation; this is not a calibrated sound-pressure graph.";
       chartWrap.appendChild(note);
     }
+
+    // Separate test-data trend so simulator activity never mixes with non-simulated observations.
+    const drawTrendChart = (containerId, items, label) => {
+      const container=document.getElementById(containerId);
+      if(!container) return;
+      container.innerHTML="";
+      const ordered=[...items].sort((a,b)=>parseDate(a)-parseDate(b));
+      if(!ordered.length){
+        const empty=document.createElement("p");empty.className="dashboard-empty-text";
+        empty.textContent="No "+label.toLowerCase()+" readings in this time range.";
+        container.appendChild(empty);return;
+      }
+      const values=ordered.map(item=>Number(item.rawValue??item.rawAdc??item.raw_adc));
+      const min=Math.min(...values),max=Math.max(...values),span=Math.max(1,max-min);
+      const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+      svg.setAttribute("viewBox","0 0 760 250");svg.setAttribute("role","img");
+      svg.setAttribute("aria-label",label+" raw ADC readings over time");
+      [0,1,2,3].forEach(i=>{
+        const y=25+i*58,g=document.createElementNS("http://www.w3.org/2000/svg","line");
+        g.setAttribute("x1","48");g.setAttribute("x2","735");g.setAttribute("y1",String(y));g.setAttribute("y2",String(y));
+        g.setAttribute("stroke","#e8eff1");g.setAttribute("stroke-dasharray","4 5");svg.appendChild(g);
+      });
+      const pts=values.map((v,i)=>({x:48+i*(687/Math.max(1,values.length-1)),y:205-((v-min)/span)*160}));
+      if(pts.length>1){
+        const line=document.createElementNS("http://www.w3.org/2000/svg","polyline");
+        line.setAttribute("points",pts.map(p=>p.x.toFixed(1)+","+p.y.toFixed(1)).join(" "));
+        line.setAttribute("fill","none");line.setAttribute("stroke","#c18b36");line.setAttribute("stroke-width","3");
+        line.setAttribute("stroke-linecap","round");line.setAttribute("stroke-linejoin","round");svg.appendChild(line);
+      }
+      pts.forEach((p,i)=>{
+        const dot=document.createElementNS("http://www.w3.org/2000/svg","circle");
+        dot.setAttribute("cx",String(p.x));dot.setAttribute("cy",String(p.y));dot.setAttribute("r","4");dot.setAttribute("fill","#c18b36");
+        const title=document.createElementNS("http://www.w3.org/2000/svg","title");
+        title.textContent=values[i]+" ADC · "+formatAlertTime(ordered[i].timestamp||ordered[i].createdAt);
+        dot.appendChild(title);svg.appendChild(dot);
+      });
+      const hi=document.createElementNS("http://www.w3.org/2000/svg","text");hi.setAttribute("x","8");hi.setAttribute("y","30");hi.textContent=String(max);
+      const lo=document.createElementNS("http://www.w3.org/2000/svg","text");lo.setAttribute("x","8");lo.setAttribute("y","208");lo.textContent=String(min);
+      svg.append(hi,lo);container.appendChild(svg);
+      const note=document.createElement("p");note.className="live-chart-footnote";
+      note.textContent=ordered.length+" saved "+label.toLowerCase()+" reading(s) · "+min+"–"+max+" ADC · not dB/dB(A)";
+      container.appendChild(note);
+    };
+    drawTrendChart("liveTestChartWrap",tests,"Simulated test");
+
+    // Descriptive location comparison using raw ADC averages only.
+    const locationBuckets=new Map();
+    inRange.forEach(item=>{
+      const raw=Number(item.rawValue??item.rawAdc??item.raw_adc);
+      if(!Number.isFinite(raw)) return;
+      const device=cachedDevices.find(entry=>entry.id===item.deviceId);
+      const locationId=item.locationId||(device&&device.locationId)||"unassigned";
+      const location=cachedLocations.find(entry=>entry.id===locationId);
+      const name=location?location.name:(locationId==="unassigned"?"Unassigned":locationId);
+      if(!locationBuckets.has(name))locationBuckets.set(name,[]);
+      locationBuckets.get(name).push(raw);
+    });
+    const locationWrap=document.getElementById("liveLocationChartWrap");
+    if(locationWrap){
+      locationWrap.innerHTML="";
+      const groups=[...locationBuckets.entries()].map(([name,values])=>({
+        name,count:values.length,average:values.reduce((sum,v)=>sum+v,0)/values.length
+      })).sort((a,b)=>b.average-a.average);
+      if(!groups.length){
+        const empty=document.createElement("p");empty.className="dashboard-empty-text";
+        empty.textContent="No readings with location information are available in this time range.";
+        locationWrap.appendChild(empty);
+      }else{
+        const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+        svg.setAttribute("viewBox","0 0 760 "+Math.max(170,groups.length*58+35));
+        svg.setAttribute("role","img");svg.setAttribute("aria-label","Average raw ADC by monitoring location");
+        const maxAvg=Math.max(1,...groups.map(g=>g.average));
+        groups.forEach((group,index)=>{
+          const y=18+index*58,label=document.createElementNS("http://www.w3.org/2000/svg","text");
+          label.setAttribute("x","8");label.setAttribute("y",String(y+17));
+          label.textContent=group.name.length>20?group.name.slice(0,18)+"…":group.name;svg.appendChild(label);
+          const bar=document.createElementNS("http://www.w3.org/2000/svg","rect");
+          bar.setAttribute("x","190");bar.setAttribute("y",String(y));bar.setAttribute("width",String(500*group.average/maxAvg));
+          bar.setAttribute("height","25");bar.setAttribute("rx","5");bar.setAttribute("fill","#5b8fc5");svg.appendChild(bar);
+          const val=document.createElementNS("http://www.w3.org/2000/svg","text");
+          val.setAttribute("x",String(198+500*group.average/maxAvg));val.setAttribute("y",String(y+17));
+          val.textContent=Math.round(group.average)+" ADC · n="+group.count;svg.appendChild(val);
+        });
+        locationWrap.appendChild(svg);
+        const note=document.createElement("p");note.className="live-chart-footnote";
+        note.textContent="Descriptive averages of saved raw ADC values. Sensor orientation, gain and calibration can affect comparisons; this is not a calibrated noise-level ranking.";
+        locationWrap.appendChild(note);
+      }
+    }
+
     const renderRows = (containerId,items,isTest) => {
       const container=document.getElementById(containerId);
       if(!container) return;
