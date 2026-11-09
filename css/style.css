@@ -1087,9 +1087,15 @@ button:hover,.signout-button:hover,.team-login-button:hover,
   0%,100% { box-shadow:0 0 0 1px rgba(50,240,140,.08),0 0 9px rgba(34,220,125,.12); }
   50% { box-shadow:0 0 0 1px rgba(50,240,140,.2),0 0 22px rgba(34,220,125,.34); }
 }
+/* Double-beat rhythm, like a heartbeat: lub-dub, then a short pause. */
 @keyframes locationActiveDot {
-  0%,100% { opacity:1; transform:scale(1); }
-  50% { opacity:.38; transform:scale(.78); }
+  0%,100% { opacity:1; transform:scale(1); box-shadow:0 0 8px #48ff9a,0 0 15px rgba(72,255,154,.8); }
+  8% { opacity:.82; transform:scale(.82); }
+  16% { opacity:1; transform:scale(1.32); box-shadow:0 0 11px #48ff9a,0 0 22px rgba(72,255,154,1); }
+  25% { opacity:1; transform:scale(1); }
+  33% { opacity:.82; transform:scale(.86); }
+  42% { opacity:1; transform:scale(1.22); box-shadow:0 0 10px #48ff9a,0 0 19px rgba(72,255,154,.95); }
+  52% { opacity:1; transform:scale(1); }
 }
 @media(prefers-reduced-motion:reduce) {
   .dashboard-location-link .location-live-status.is-active,
