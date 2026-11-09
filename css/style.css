@@ -1028,3 +1028,32 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 .live-monitor-disclaimer strong,
 .live-monitor-disclaimer b { color:#ffffff!important; }
 .live-monitor-disclaimer a { color:#75f1df!important; }
+
+/* VISUAL POLISH: stronger card separation, consistent icon accents, and clear location labels */
+.stat-card,.panel,.firestore-location-card,.device-monitor-card,.dashboard-location-link,
+.location-detail-stat,.location-detail-device {
+  border-color:rgba(125,205,226,.38)!important;
+  box-shadow:0 16px 38px rgba(0,0,0,.30),inset 0 1px rgba(225,248,255,.055)!important;
+}
+.stat-card,.panel,.firestore-location-card,.dashboard-location-link,
+.location-detail-stat,.location-detail-device {
+  background:linear-gradient(145deg,rgba(20,49,72,.99),rgba(10,30,48,.99))!important;
+}
+.stat-card:hover,.panel:hover,.firestore-location-card:hover,
+.dashboard-location-link:hover,.location-detail-stat:hover,.location-detail-device:hover {
+  border-color:rgba(91,235,220,.62)!important;
+  box-shadow:0 20px 44px rgba(0,0,0,.34),0 0 22px rgba(70,210,215,.10),inset 0 1px rgba(225,248,255,.08)!important;
+}
+/* Keep dashboard metric icons in one calm cyan/teal family */
+.stat-icon,.stat-icon.teal,.stat-icon.blue,.stat-icon.violet,.stat-icon.amber {
+  color:#75f1df!important;
+  background:rgba(46,174,174,.17)!important;
+  border:1px solid rgba(100,229,218,.24)!important;
+  filter:none!important;
+}
+/* Make the two classroom labels easy to spot in Monitoring locations */
+.dashboard-location-link strong {
+  color:#ffffff!important;
+  font-weight:800!important;
+  text-shadow:0 0 12px rgba(255,255,255,.12);
+}
