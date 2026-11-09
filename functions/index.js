@@ -106,7 +106,9 @@ exports.ingestDeviceData = onRequest(
       }
 
       const timestamp = FieldValue.serverTimestamp();
-      const observationRef = await db.collection("observations").add({
+      const observationRef = db.collection("observations").doc();
+      const ingestBatch = db.batch();
+      ingestBatch.set(observationRef, {
         deviceId,
         locationId,
         timestamp,
@@ -119,6 +121,13 @@ exports.ingestDeviceData = onRequest(
         firmwareVersion,
         createdAt: timestamp
       });
+      // A valid authenticated sensor upload is also its server-verified heartbeat.
+      // This powers the dashboard's two-minute Online/Offline indicator.
+      ingestBatch.update(deviceQuery.docs[0].ref, {
+        lastHeartbeatAt: timestamp,
+        connectionStatus: "online"
+      });
+      await ingestBatch.commit();
 
       let alertCreated = false;
       if (event === "staffroom_alert") {
