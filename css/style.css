@@ -1101,3 +1101,36 @@ button:hover,.signout-button:hover,.team-login-button:hover,
   .dashboard-location-link .location-live-status.is-active,
   .dashboard-location-link .location-live-status.is-active:before { animation:none!important; }
 }
+
+
+/* OFFLINE LOCATION STATUS: red warning badge with a clear blinking indicator */
+.dashboard-location-link .location-live-status.is-offline {
+  display:inline-flex!important;
+  align-items:center;
+  gap:7px;
+  color:#ff8b8b!important;
+  background:rgba(239,68,68,.10)!important;
+  border:1px solid rgba(255,92,92,.58)!important;
+  border-radius:999px!important;
+  padding:6px 10px!important;
+  font-weight:800!important;
+  letter-spacing:.8px;
+  box-shadow:0 0 0 1px rgba(255,70,70,.08),0 0 12px rgba(239,68,68,.14)!important;
+}
+.dashboard-location-link .location-live-status.is-offline:before {
+  content:"";
+  width:7px;
+  height:7px;
+  flex:none;
+  border-radius:50%;
+  background:#ff4545;
+  box-shadow:0 0 8px #ff4545,0 0 15px rgba(255,69,69,.8);
+  animation:locationOfflineBlink 1s steps(2,end) infinite;
+}
+@keyframes locationOfflineBlink {
+  0%,100% { opacity:1; }
+  50% { opacity:.12; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .dashboard-location-link .location-live-status.is-offline:before { animation:none!important; }
+}
