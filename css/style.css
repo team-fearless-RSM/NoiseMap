@@ -1011,3 +1011,20 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 @media(max-width:700px) {
   .topbar { background:rgba(5,19,32,.98)!important; }
 }
+
+
+/* LIVE MONITORING: darken the Firestore update badge and data disclaimer */
+.live-monitor-connection {
+  color:#8ff5e4!important;
+  background:rgba(19,91,91,.34)!important;
+  border:1px solid rgba(91,231,207,.34)!important;
+}
+.live-monitor-disclaimer {
+  color:#d7e8f2!important;
+  background:linear-gradient(120deg,rgba(31,65,83,.96),rgba(15,43,62,.98))!important;
+  border:1px solid rgba(113,190,211,.32)!important;
+  box-shadow:inset 3px 0 #56dfca,0 8px 22px rgba(0,0,0,.16)!important;
+}
+.live-monitor-disclaimer strong,
+.live-monitor-disclaimer b { color:#ffffff!important; }
+.live-monitor-disclaimer a { color:#75f1df!important; }
