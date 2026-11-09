@@ -39,6 +39,8 @@
   let cachedDevices = [];
   let cachedObservations = [];
   let cachedActions = [];
+  let cachedEndpointTests = [];
+  let endpointTestUnsubscribe = null;
   let deviceUnsubscribe = null;
   let observationUnsubscribe = null;
   let actionUnsubscribe = null;
@@ -217,6 +219,18 @@
     canEditAlerts = Boolean(user && isEditor);
     canEditLocations = Boolean(user && isEditor);
     canManageRecords = Boolean(user && isEditor);
+    const endpointTestPanel = document.getElementById("endpointTestPanel");
+    if (endpointTestPanel) endpointTestPanel.hidden = !canManageRecords;
+    if (canManageRecords) {
+      connectEndpointTests();
+    } else {
+      if (endpointTestUnsubscribe) {
+        endpointTestUnsubscribe();
+        endpointTestUnsubscribe = null;
+      }
+      cachedEndpointTests = [];
+      renderEndpointTests([]);
+    }
     const simulatorPanel = document.getElementById('sensorSimulator');
     if (simulatorPanel) simulatorPanel.hidden = !canManageRecords;
     if (!canManageRecords) stopSensorSimulator('Simulator stopped. Sign in as an authorised team member to use test mode.');
@@ -1073,6 +1087,61 @@
       renderLocationDetailPages();
       renderDashboard();
     }, error => console.error("Could not load observations:", error));
+  }
+
+  function renderEndpointTests(items) {
+    const list = document.getElementById("endpointTestList");
+    const status = document.getElementById("endpointTestStatus");
+    if (!list) return;
+    list.innerHTML = "";
+    if (!items.length) {
+      if (status) status.textContent = "Connected. No endpoint test records were found in this collection yet.";
+      const empty = document.createElement("p");
+      empty.className = "dashboard-empty-text";
+      empty.textContent = "No Apps Script endpoint test records yet.";
+      list.appendChild(empty);
+      return;
+    }
+    if (status) status.textContent = "Connected · " + items.length + " endpoint test record(s). These are not live sensor readings.";
+    [...items].sort((a, b) => {
+      const dateOf = value => value && typeof value.toDate === "function" ? value.toDate() : new Date(value || 0);
+      return dateOf(b.createdAt || b.timestamp) - dateOf(a.createdAt || a.timestamp);
+    }).forEach(item => {
+      const card = document.createElement("article");
+      card.className = "firestore-location-card";
+      const details = document.createElement("div");
+      details.className = "firestore-location-details";
+      const heading = document.createElement("h3");
+      heading.textContent = "Endpoint test · " + (item.status || "record received");
+      const description = document.createElement("p");
+      const raw = item.rawValue ?? item.rawAdc ?? item.raw_adc;
+      description.textContent = "Source: " + (item.source || "Apps Script test") +
+        " · Simulated: " + (item.isSimulated === true ? "Yes" : "Not marked") +
+        (raw === undefined || raw === null ? "" : " · Raw value: " + raw + " ADC");
+      const meta = document.createElement("p");
+      meta.textContent = "Saved: " + formatAlertTime(item.createdAt || item.timestamp) + " · Document: " + item.id;
+      details.append(heading, description, meta);
+      const tag = document.createElement("span");
+      tag.className = "firestore-location-status";
+      tag.textContent = "TEST ONLY";
+      card.append(details, tag);
+      list.appendChild(card);
+    });
+  }
+
+  function connectEndpointTests() {
+    if (!canManageRecords || !window.NoiseMap || !window.NoiseMap.configured || endpointTestUnsubscribe) return;
+    const status = document.getElementById("endpointTestStatus");
+    if (status) status.textContent = "Loading endpoint test records…";
+    endpointTestUnsubscribe = window.NoiseMap.subscribeEndpointTests(items => {
+      cachedEndpointTests = items;
+      renderEndpointTests(items);
+    }, error => {
+      console.error("Could not load endpoint test records:", error);
+      if (status) status.textContent = error.code === "permission-denied"
+        ? "Access denied. Confirm the endpoint_test_observations read rule and team membership."
+        : "Could not load endpoint test records. Check the Firestore connection.";
+    });
   }
 
   function connectActions() {
