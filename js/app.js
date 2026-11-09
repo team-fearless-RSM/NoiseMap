@@ -706,7 +706,7 @@
     rangeLabel.htmlFor = "locationRange-" + location.id;
     const rangeSelect = document.createElement("select");
     rangeSelect.id = "locationRange-" + location.id;
-    [["24","Last 24 hours"],["7","Last 7 days"],["30","Last 30 days"],["all","All available history"]].forEach(([value,label]) => {
+    [["24","Last 24 hours"],["7","Last 7 days"],["30","Last 30 days"],["all","All loaded history"]].forEach(([value,label]) => {
       const option = document.createElement("option");
       option.value = value; option.textContent = label; rangeSelect.appendChild(option);
     });
