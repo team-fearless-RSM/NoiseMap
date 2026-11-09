@@ -189,6 +189,12 @@
           <p class="simulator-status" id="simulatorStatus" role="status">Simulator stopped. No readings are being generated.</p>
           <p class="simulator-disclaimer">All simulator records are marked SIMULATED in Firestore. They are not real sensor readings and must not be used as environmental evidence.</p>
         </section>
+        <section class="panel sensor-simulator" id="endpointTestPanel" hidden aria-label="Apps Script endpoint test records">
+          <div class="panel-heading"><div><h2>Apps Script endpoint verification</h2><p>Authenticated test records received by the web app and saved separately from live sensor observations.</p></div><span class="simulator-badge">TEAM ONLY · TEST DATA</span></div>
+          <p class="simulator-disclaimer">These records verify the Apps Script-to-Firestore path. They are not live environmental readings and are excluded from sensor history, alerts and Action Tracker.</p>
+          <p class="simulator-status" id="endpointTestStatus" role="status">Sign in as an authorised team member to view endpoint test records.</p>
+          <div class="firestore-location-list" id="endpointTestList" aria-live="polite"></div>
+        </section>
         <form class="panel location-form record-form" id="deviceForm" hidden>
           <div class="panel-heading"><div><h2>Register a device</h2><p>Adding a device record does not mean it is connected or sending live readings.</p></div></div>
           <label for="deviceId">Device name / ID</label><input id="deviceId" required maxlength="100" placeholder="e.g. NM-CLASS-01">
