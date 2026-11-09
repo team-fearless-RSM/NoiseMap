@@ -147,6 +147,15 @@
           <div class="panel-heading"><div><h2>Raw sensor trend</h2><p id="liveChartSubtitle">Non-simulated readings · ADC 0–1023</p></div><span class="live-chart-key"><i></i> Non-simulated observations</span></div>
           <div class="live-chart-wrap" id="liveChartWrap"><p class="dashboard-empty-text">Waiting for non-simulated sensor observations. Simulator readings are excluded from this graph.</p></div>
         </section>
+
+        <section class="panel live-monitor-chart-panel live-test-panel">
+          <div class="panel-heading"><div><h2>Test-data trend</h2><p>Simulated readings only · raw ADC 0–1023</p></div><span class="simulator-badge">TEST ONLY</span></div>
+          <div class="live-chart-wrap" id="liveTestChartWrap"><p class="dashboard-empty-text">No simulated readings available for this range.</p></div>
+        </section>
+        <section class="panel live-monitor-chart-panel">
+          <div class="panel-heading"><div><h2>Location comparison</h2><p>Average raw ADC by location · selected time range</p></div></div>
+          <div class="live-chart-wrap" id="liveLocationChartWrap"><p class="dashboard-empty-text">No location data available for comparison.</p></div>
+        </section>
         <section class="panel live-monitor-table-panel">
           <div class="panel-heading"><div><h2>Latest non-simulated observations</h2><p>Most recent non-simulated records for the selected range</p></div></div>
           <div id="liveRealReadings" class="live-monitor-records"><p class="dashboard-empty-text">No non-simulated observations recorded yet.</p></div>
