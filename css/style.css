@@ -735,3 +735,71 @@ input,select,textarea { accent-color:#55f4e0; }
 @media(prefers-reduced-motion:reduce) {
   .stat-card,.panel,.firestore-location-card,.device-monitor-card,.nav-link { transition:none!important; }
 }
+
+
+/* VISUAL IDENTITY: dedicated photo panels for alerts and sensor devices */
+.staff-alert-card {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  min-height:150px;
+  padding:22px 24px;
+  background:
+    linear-gradient(90deg,rgba(20,18,24,.97) 0%,rgba(20,24,34,.91) 48%,rgba(20,24,34,.58) 100%),
+    url("https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=85") center 48%/cover,
+    linear-gradient(120deg,#3b2424,#10243a);
+}
+.staff-alert-card:before {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  background:linear-gradient(105deg,rgba(255,176,88,.12),transparent 55%);
+  pointer-events:none;
+}
+.staff-alert-card.is-resolved {
+  background:
+    linear-gradient(90deg,rgba(7,34,36,.97) 0%,rgba(8,37,44,.90) 48%,rgba(8,37,44,.58) 100%),
+    url("https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=85") center 48%/cover,
+    linear-gradient(120deg,#143b3a,#10243a);
+}
+.staff-alert-top,.staff-alert-detail,.staff-alert-actions { position:relative; z-index:1; }
+.staff-alert-top h3 { font-size:17px; text-shadow:0 2px 12px rgba(0,0,0,.5); }
+.staff-alert-detail { max-width:780px; text-shadow:0 1px 8px rgba(0,0,0,.7); }
+.staff-alert-status { backdrop-filter:blur(8px); }
+
+.device-monitor-card {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  min-height:225px;
+  background:
+    linear-gradient(90deg,rgba(5,21,36,.98) 0%,rgba(5,25,42,.91) 56%,rgba(5,25,42,.58) 100%),
+    url("https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=85") center/cover,
+    linear-gradient(135deg,#102c46,#071725);
+}
+.device-monitor-card:before {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  background:linear-gradient(115deg,rgba(65,207,221,.10),transparent 58%);
+  pointer-events:none;
+}
+.device-monitor-card-top,.device-monitor-reading,.device-monitor-unit,.device-monitor-meta {
+  position:relative;
+  z-index:1;
+  text-shadow:0 1px 9px rgba(0,0,0,.65);
+}
+.device-monitor-reading {
+  font-size:clamp(32px,4vw,44px);
+  font-weight:700;
+}
+.device-monitor-status {
+  backdrop-filter:blur(8px);
+  box-shadow:0 0 18px rgba(70,225,204,.10);
+}
+@media(max-width:700px) {
+  .staff-alert-card { padding:18px; }
+  .device-monitor-card { min-height:205px; }
+}
