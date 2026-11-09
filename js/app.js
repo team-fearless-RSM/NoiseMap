@@ -393,9 +393,9 @@
     };
     drawTrendChart("liveTestChartWrap",tests,"Simulated test");
 
-    // Descriptive location comparison using raw ADC averages only.
+    // Descriptive location comparison using non-simulated raw ADC averages only.
     const locationBuckets=new Map();
-    inRange.forEach(item=>{
+    real.forEach(item=>{
       const raw=Number(item.rawValue??item.rawAdc??item.raw_adc);
       if(!Number.isFinite(raw)) return;
       const device=cachedDevices.find(entry=>entry.id===item.deviceId);
@@ -413,7 +413,7 @@
       })).sort((a,b)=>b.average-a.average);
       if(!groups.length){
         const empty=document.createElement("p");empty.className="dashboard-empty-text";
-        empty.textContent="No readings with location information are available in this time range.";
+        empty.textContent="No non-simulated readings with location information are available in this time range.";
         locationWrap.appendChild(empty);
       }else{
         const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
