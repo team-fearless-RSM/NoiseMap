@@ -283,7 +283,7 @@
     const latest = sortedReal[sortedReal.length - 1] || null;
     const setText = (id,value) => { const el=document.getElementById(id); if(el) el.textContent=String(value); };
     setText("liveLatestValue", latest ? String(latest.rawValue ?? latest.rawAdc ?? latest.raw_adc) + " ADC" : "—");
-    setText("liveLatestTime", latest ? formatAlertTime(latest.timestamp || latest.createdAt) : "No verified reading yet");
+    setText("liveLatestTime", latest ? formatAlertTime(latest.timestamp || latest.createdAt) : "No non-simulated reading yet");
     setText("liveReadingCount", real.length);
     setText("liveTestCount", tests.length);
     const recentDeviceIds = new Set();
@@ -299,13 +299,13 @@
     const connection = document.getElementById("liveMonitorConnection");
     if (connection) connection.textContent = "Firestore updates · " + cachedObservations.length + " saved observation(s) loaded";
     const subtitle = document.getElementById("liveChartSubtitle");
-    if (subtitle) subtitle.textContent = "Last " + rangeDays + (rangeDays === 1 ? " day" : " days") + " · " + real.length + " real observation(s) · raw ADC";
+    if (subtitle) subtitle.textContent = "Last " + rangeDays + (rangeDays === 1 ? " day" : " days") + " · " + real.length + " non-simulated observation(s) · raw ADC";
     chartWrap.innerHTML = "";
     if (sortedReal.length < 2) {
       const empty = document.createElement("p");
       empty.className = "dashboard-empty-text";
       empty.textContent = sortedReal.length === 1
-        ? "One real observation is available. A trend line will appear after another real reading is saved."
+        ? "One real observation is available. A trend line will appear after another non-simulated reading is saved."
         : "No real sensor observations in this time range. Simulated readings are excluded from this graph.";
       chartWrap.appendChild(empty);
     } else {
@@ -355,7 +355,7 @@
       const rows=[...items].sort((a,b)=>(parseDate(b)?.getTime()||0)-(parseDate(a)?.getTime()||0)).slice(0,12);
       if(!rows.length) {
         const empty=document.createElement("p"); empty.className="dashboard-empty-text";
-        empty.textContent=isTest?"No simulated observations in this range.":"No real observations in this range.";
+        empty.textContent=isTest?"No simulated observations in this range.":"No non-simulated observations in this range.";
         container.appendChild(empty); return;
       }
       rows.forEach(item=>{
