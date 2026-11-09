@@ -598,7 +598,7 @@
           name.textContent = location.name || "Unnamed location";
           const status = document.createElement("span");
           const locationStatus = String(location.status || "planned").toLowerCase();
-          status.className = "location-live-status" + (locationStatus === "active" ? " is-active" : "");
+          status.className = "location-live-status" + (locationStatus === "active" ? " is-active" : locationStatus === "offline" ? " is-offline" : "");
           status.textContent = location.status || "planned";
           link.append(name, status);
           locationsList.appendChild(link);
