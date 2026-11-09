@@ -805,7 +805,7 @@
           warningCount: 3,
           source: "manual_test"
         });
-        if (alertTestMessage) alertTestMessage.textContent = "Test alert created. It is now visible on the staffroom dashboard.";
+        if (alertTestMessage) alertTestMessage.textContent = "Test alert and matching TEST ONLY Action Tracker recommendation created.";
       } catch (error) {
         console.error("Could not create test alert:", error);
         if (alertTestMessage) alertTestMessage.textContent = error.code === "permission-denied"
@@ -1027,14 +1027,19 @@
     if (empty) empty.hidden = actions.length > 0;
     actions.forEach(action => {
       const automatic = action.source === "automatic_rule";
+      const testAutomation = action.source === "manual_test_automation";
       const title = automatic
         ? "AUTOMATED RECOMMENDATION · " + (action.priority === "high" ? "HIGH PRIORITY" : "ACTION")
-        : "Action record";
+        : testAutomation
+          ? "AUTOMATED TEST RECOMMENDATION · TEST ONLY"
+          : "Action record";
       const description = action.recommendation || action.description || "Action record";
       const status = action.responseStatus || "not verified";
       const notification = automatic
         ? " · Notification: " + (action.notificationStatus === "in_app_alert_created" ? "In-app staff alert created; external delivery not configured" : "Not sent")
-        : "";
+        : testAutomation
+          ? " · Created automatically from a manual test alert; no external notification sent"
+          : "";
       list.appendChild(recordCard(
         title,
         description + " · Responsible: " + (action.responsible || "Not assigned") + " · Status: " + status,
