@@ -28,6 +28,13 @@ service cloud.firestore {
       allow create, update, delete: if isTeamMember();
     }
 
+    // Apps Script endpoint verification records are separate from real sensor observations.
+    // The Apps Script OAuth service writes these; browsers can only read them as team members.
+    match /endpoint_test_observations/{documentId} {
+      allow read: if isTeamMember();
+      allow write: if false;
+    }
+
     match /actions/{documentId} {
       allow read: if true;
       allow create, update, delete: if isTeamMember();
