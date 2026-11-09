@@ -305,8 +305,8 @@
       const empty = document.createElement("p");
       empty.className = "dashboard-empty-text";
       empty.textContent = sortedReal.length === 1
-        ? "One real observation is available. A trend line will appear after another non-simulated reading is saved."
-        : "No real sensor observations in this time range. Simulated readings are excluded from this graph.";
+        ? "One non-simulated observation is available. A trend line will appear after another non-simulated reading is saved."
+        : "No non-simulated sensor observations in this time range. Simulated readings are excluded from this graph.";
       chartWrap.appendChild(empty);
     } else {
       const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
