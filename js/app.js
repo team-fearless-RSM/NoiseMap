@@ -784,7 +784,8 @@
         status.textContent = heartbeat.label;
         row.append(name,status);
         const meta = document.createElement("small");
-        meta.textContent = (device.hardware || "Hardware not specified") + " · " + heartbeat.detail + " · Last reading: " + (latest ? formatAlertTime(latest.timestamp || latest.createdAt) : "Not recorded");
+        const latestRaw = latest ? (latest.rawValue ?? latest.rawAdc ?? latest.raw_adc) : null;
+        meta.textContent = (device.hardware || "Hardware not specified") + " · " + heartbeat.detail + " · Latest reading: " + (latestRaw === null || latestRaw === undefined ? "Not recorded" : latestRaw + " ADC") + " · " + (latest ? formatAlertTime(latest.timestamp || latest.createdAt) : "No timestamp");
         row.appendChild(meta); devicePanel.appendChild(row);
       });
     }
