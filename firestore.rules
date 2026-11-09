@@ -44,9 +44,7 @@ service cloud.firestore {
     match /alerts/{alertId} {
       allow read: if true;
       allow create, update, delete: if isTeamMember();
-    match /endpoint_test_observations/{documentId} {
-      allow read: if isTeamMember();
-      allow write: if false;
+   
 }
     }
 
