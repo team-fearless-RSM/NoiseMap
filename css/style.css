@@ -914,3 +914,100 @@ input,select,textarea { accent-color:#55f4e0; }
 @media(max-width:700px) {
   .device-monitoring { padding:17px!important; border-radius:16px!important; }
 }
+
+
+/* SITE-WIDE DARK THEME: remove the remaining white/light surfaces */
+:root {
+  color-scheme:dark;
+  --bg:#071522;
+  --ink:#edf6fb;
+  --navy:#071827;
+  --line:rgba(128,190,211,.22);
+  --muted:#a9bdca;
+  --shadow:0 14px 34px rgba(0,0,0,.24);
+}
+html,body { background:#071522!important; color:#edf6fb!important; }
+body {
+  background:
+    radial-gradient(ellipse at 82% 0%,rgba(25,105,133,.18),transparent 38%),
+    radial-gradient(ellipse at 12% 70%,rgba(61,66,137,.13),transparent 42%),
+    #071522!important;
+}
+.main-area { background:transparent!important; }
+.topbar {
+  background:rgba(5,19,32,.96)!important;
+  border-bottom:1px solid rgba(113,190,215,.22)!important;
+}
+.breadcrumb,.topbar-right { color:#c5d7e3!important; }
+.breadcrumb strong,h1,h2,h3 { color:#f3f9fd!important; }
+.intro,.stat-top,.stat-foot,.panel-heading p,.chart-legend,
+.chart-xlabels,.footer,.empty-panel p,.about-panel>p { color:#b4c7d4!important; }
+
+.stat-card,.panel,.auth-card,.firestore-location-card,
+.location-detail-stat,.location-range-controls,.location-history-chart,
+.live-test-panel,.sensor-simulator,.analytics-comparison,
+.dashboard-location-link,.location-detail-device {
+  color:#edf6fb!important;
+  background:linear-gradient(145deg,rgba(17,43,65,.98),rgba(9,27,44,.99))!important;
+  border-color:rgba(119,190,211,.28)!important;
+  box-shadow:0 14px 34px rgba(0,0,0,.22)!important;
+}
+.notice,.about-note,.empty-icon,.pill,.table-tag,
+.location-row .loc-state,.analytics-bar-track {
+  color:#d8e9f2!important;
+  background:rgba(36,82,101,.48)!important;
+  border-color:rgba(112,190,205,.25)!important;
+}
+.location-row,.action-item,.location-detail-device,.location-history-row,
+td,th { border-color:rgba(139,184,202,.18)!important; }
+.location-row strong,.action-item strong,.location-detail-device strong,
+.location-history-row strong,.location-detail-stat strong,
+.stat-value,.panel-heading h2,.empty-panel h2,.about-panel h2 { color:#f2f8fc!important; }
+.location-row small,.action-item small,.location-detail-device small,
+.location-history-row span,.location-history-row small,
+.location-detail-stat span,.location-detail-note { color:#b4c8d5!important; }
+td { color:#dce9f1!important; }
+th { color:#a9c1d0!important; }
+.date-chip,.location-range-controls select,.live-monitor-controls select,
+.sensor-simulator select,.location-form input,.location-form textarea,
+.location-form select,.alert-test-form input,.alert-test-form select,
+.record-form input,.record-form textarea,.record-form select,
+input,textarea,select {
+  color:#f1f8fc!important;
+  background:#0a2033!important;
+  border-color:rgba(133,190,210,.38)!important;
+}
+input::placeholder,textarea::placeholder { color:#91aaba!important; opacity:1; }
+button,.signout-button,.team-login-button,.public-view-button,
+.staff-alert-actions button {
+  color:#eaf6fc!important;
+  background:#123149!important;
+  border-color:rgba(123,197,214,.36)!important;
+}
+button:hover,.signout-button:hover,.team-login-button:hover,
+.public-view-button:hover { background:#1b5265!important; color:#ffffff!important; }
+.notice strong,.about-note strong { color:#8ff5e4!important; }
+.notice p,.about-note p { color:#c3dedf!important; }
+.footer a,.text-link,.location-open-link,.location-back-link { color:#6cebdc!important; }
+.status-dot { box-shadow:0 0 0 4px rgba(77,242,198,.12),0 0 15px #4df2c6!important; }
+.auth-screen {
+  background:
+    radial-gradient(circle at 15% 15%,rgba(22,168,153,.17),transparent 34%),
+    linear-gradient(135deg,#071522,#102b42)!important;
+}
+.auth-card { background:linear-gradient(145deg,#102b42,#091d30)!important; }
+.auth-card h1,.auth-card h2,.auth-card label { color:#f3f9fd!important; }
+.empty-panel { background:linear-gradient(145deg,rgba(17,43,65,.98),rgba(9,27,44,.99))!important; }
+.visitor-stat-card { background:linear-gradient(145deg,#123b4c,#0b263a)!important; border-color:rgba(102,215,207,.32)!important; }
+.analytics-comparison.is-down { color:#ffc39e!important; background:rgba(133,67,48,.25)!important; }
+.pending,.dashboard-alert-status,.dashboard-simulated-tag,
+.demo-tag,.simulator-badge,.firestore-location-status,
+.device-monitor-status.is-offline,.device-monitor-status.is-stale,
+.device-monitor-status.is-simulated {
+  color:#ffd59b!important;
+  background:rgba(145,94,37,.24)!important;
+  border:1px solid rgba(229,173,91,.28)!important;
+}
+@media(max-width:700px) {
+  .topbar { background:rgba(5,19,32,.98)!important; }
+}
