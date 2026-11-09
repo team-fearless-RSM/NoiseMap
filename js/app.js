@@ -31,6 +31,7 @@
   const alertTestSubmit = document.getElementById("alertTestSubmit");
   const alertTestMessage = document.getElementById("alertTestMessage");
   let cachedLocations = [];
+  const locationHistoryRanges = Object.create(null);
   let alertUnsubscribe = null;
   let currentUser = null;
   let canEditAlerts = false;
@@ -698,11 +699,41 @@
     intro.textContent = location.description || "Location-specific sensor readings and monitoring history.";
     section.appendChild(intro);
 
+    const rangeControls = document.createElement("div");
+    rangeControls.className = "location-range-controls";
+    const rangeLabel = document.createElement("label");
+    rangeLabel.textContent = "History range";
+    rangeLabel.htmlFor = "locationRange-" + location.id;
+    const rangeSelect = document.createElement("select");
+    rangeSelect.id = "locationRange-" + location.id;
+    [["24","Last 24 hours"],["7","Last 7 days"],["30","Last 30 days"],["all","All available history"]].forEach(([value,label]) => {
+      const option = document.createElement("option");
+      option.value = value; option.textContent = label; rangeSelect.appendChild(option);
+    });
+    rangeSelect.value = locationHistoryRanges[location.id] || "all";
+    rangeSelect.addEventListener("change", () => {
+      locationHistoryRanges[location.id] = rangeSelect.value;
+      renderLocationDetailPages();
+    });
+    rangeControls.append(rangeLabel,rangeSelect);
+    section.appendChild(rangeControls);
+
     const devices = cachedDevices.filter(device => device.locationId === location.id);
     const observations = cachedObservations.filter(item => {
       if (item.locationId) return item.locationId === location.id;
       return devices.some(device => device.id === item.deviceId);
     }).sort((a,b) => (locationReadingDate(b)?.getTime() || 0) - (locationReadingDate(a)?.getTime() || 0));
+    const selectedRange = locationHistoryRanges[location.id] || "all";
+    const rangeCutoff = selectedRange === "all" ? 0 : Date.now() - Number(selectedRange) * 24 * 60 * 60 * 1000;
+    const historyObservations = observations.filter(item => {
+      const date = locationReadingDate(item);
+      return date && date.getTime() >= rangeCutoff;
+    });
+    const historyAlerts = cachedAlerts.filter(alert => {
+      const belongsToLocation = alert.locationId === location.id || (!alert.locationId && alert.classroomName === location.name);
+      const date = locationReadingDate({timestamp: alert.createdAt});
+      return belongsToLocation && date && date.getTime() >= rangeCutoff;
+    }).sort((a,b) => (locationReadingDate({timestamp:b.createdAt})?.getTime() || 0) - (locationReadingDate({timestamp:a.createdAt})?.getTime() || 0));
     const latestByDevice = devices.map(device => ({
       device,
       latest: observations.find(item => item.deviceId === device.id) || null
@@ -710,10 +741,6 @@
     const latestObservation = observations[0] || null;
     const latestDate = locationReadingDate(latestObservation);
     const isRecent = !!latestObservation && !latestObservation.isSimulated && !!latestDate && Date.now() - latestDate.getTime() >= 0 && Date.now() - latestDate.getTime() <= 5 * 60 * 1000;
-    const alerts = cachedAlerts.filter(alert =>
-      alert.locationId === location.id || (!alert.locationId && alert.classroomName === location.name)
-    ).sort((a,b) => (locationReadingDate({timestamp:b.createdAt})?.getTime() || 0) - (locationReadingDate({timestamp:a.createdAt})?.getTime() || 0));
-
     const summary = document.createElement("div");
     summary.className = "location-detail-summary";
     const summaryItems = [
@@ -770,7 +797,7 @@
     const historyH = document.createElement("h2"); historyH.textContent = "Historical readings";
     const historyP = document.createElement("p"); historyP.textContent = "Saved raw ADC observations for this location";
     historyTitle.append(historyH,historyP); historyHeading.appendChild(historyTitle); historyPanel.appendChild(historyHeading);
-    const chartableObservations = observations.filter(item => !item.isSimulated && Number.isFinite(Number(item.rawValue ?? item.rawAdc ?? item.raw_adc)));
+    const chartableObservations = historyObservations.filter(item => !item.isSimulated && Number.isFinite(Number(item.rawValue ?? item.rawAdc ?? item.raw_adc)));
     if (chartableObservations.length >= 2) {
       const chartWrap = document.createElement("div"); chartWrap.className = "location-history-chart";
       const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
@@ -795,6 +822,14 @@
         const maxLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
         maxLabel.setAttribute("x","576"); maxLabel.setAttribute("y","16"); maxLabel.setAttribute("text-anchor","end"); maxLabel.textContent = "Max " + max + " ADC";
         svg.append(minLabel,maxLabel);
+        const firstDate = locationReadingDate(valid[0]);
+        const lastDate = locationReadingDate(valid[valid.length - 1]);
+        const makeTimeLabel = date => date ? new Intl.DateTimeFormat("en-IN", {day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}).format(date) : "Time unavailable";
+        const startLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
+        startLabel.setAttribute("x","24"); startLabel.setAttribute("y","170"); startLabel.textContent = makeTimeLabel(firstDate);
+        const endLabel = document.createElementNS("http://www.w3.org/2000/svg","text");
+        endLabel.setAttribute("x","576"); endLabel.setAttribute("y","170"); endLabel.setAttribute("text-anchor","end"); endLabel.textContent = makeTimeLabel(lastDate);
+        svg.append(startLabel,endLabel);
       }
       chartWrap.appendChild(svg); historyPanel.appendChild(chartWrap);
       const chartNote = document.createElement("p"); chartNote.className = "location-detail-note";
@@ -802,12 +837,12 @@
       historyPanel.appendChild(chartNote);
     } else {
       const empty = document.createElement("p"); empty.className = "dashboard-empty-text";
-      empty.textContent = observations.length ? "Add more saved readings to display a trend graph." : "No historical readings recorded for this location yet.";
+      empty.textContent = historyObservations.length ? "Add more non-simulated readings to display a trend graph." : "No readings recorded for this location in the selected time range.";
       historyPanel.appendChild(empty);
     }
     const tableWrap = document.createElement("div"); tableWrap.className = "location-history-table";
-    if (observations.length) {
-      observations.slice(0,20).forEach(item => {
+    if (historyObservations.length) {
+      historyObservations.slice(0,20).forEach(item => {
         const row = document.createElement("div"); row.className = "location-history-row";
         const value = document.createElement("strong"); value.textContent = String(item.rawValue ?? item.rawAdc ?? item.raw_adc ?? "—") + " ADC";
         const date = document.createElement("span"); date.textContent = formatAlertTime(item.timestamp || item.createdAt);
@@ -826,12 +861,12 @@
     const alertH = document.createElement("h2"); alertH.textContent = "Threshold exceedance history";
     const alertP = document.createElement("p"); alertP.textContent = "Alert events recorded for this location";
     alertTitle.append(alertH,alertP); alertHeading.appendChild(alertTitle); alertPanel.appendChild(alertHeading);
-    if (!alerts.length) {
+    if (!historyAlerts.length) {
       const empty = document.createElement("p"); empty.className = "dashboard-empty-text";
-      empty.textContent = "No threshold alert records have been saved for this location.";
+      empty.textContent = "No threshold alert records have been saved for this location in the selected time range.";
       alertPanel.appendChild(empty);
     } else {
-      alerts.slice(0,20).forEach(alert => {
+      historyAlerts.slice(0,20).forEach(alert => {
         const row = document.createElement("div"); row.className = "location-history-row";
         const value = document.createElement("strong"); value.textContent = Number.isFinite(Number(alert.rawAdc)) ? alert.rawAdc + " ADC" : "Reading unavailable";
         const date = document.createElement("span"); date.textContent = formatAlertTime(alert.createdAt);
