@@ -93,16 +93,54 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       }, onError),
     subscribeAlerts: (onData, onError) => db.collection("alerts").orderBy("createdAt", "desc").limit(100)
       .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
-    addAlert: data => db.collection("alerts").add({
-      locationId: data.locationId || null,
-      classroomName: String(data.classroomName || "Unknown classroom").trim(),
-      rawAdc: Number(data.rawAdc),
-      warningCount: 3,
-      status: "open",
-      source: data.source || "manual_test",
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdBy: auth.currentUser.uid
-    }),
+    addAlert: async data => {
+      if (!auth.currentUser) throw new Error("Sign in with an authorised team account first.");
+      const alertRef = db.collection("alerts").doc();
+      const createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      const source = data.source || "manual_test";
+      const batch = db.batch();
+
+      batch.set(alertRef, {
+        locationId: data.locationId || null,
+        classroomName: String(data.classroomName || "Unknown classroom").trim(),
+        rawAdc: Number(data.rawAdc),
+        warningCount: 3,
+        status: "open",
+        source,
+        createdAt,
+        createdBy: auth.currentUser.uid
+      });
+
+      // Manual dashboard tests also create a clearly labelled test-only action.
+      // Physical ESP8266 alerts continue to use the server-side monitoring workflow.
+      if (source === "manual_test") {
+        const actionRef = db.collection("actions").doc("test_auto_" + alertRef.id);
+        const recommendation =
+          "TEST ONLY: Notify the classroom teacher, check the source of the repeated noise, " +
+          "apply the agreed classroom noise routine, and record the outcome.";
+        batch.set(actionRef, {
+          alertId: alertRef.id,
+          locationId: data.locationId || null,
+          description: recommendation,
+          recommendation,
+          actionDate: null,
+          responsible: "Classroom teacher / site coordinator",
+          responseStatus: "pending",
+          priority: "test",
+          automationType: "staffroom_noise_escalation_test",
+          source: "manual_test_automation",
+          testOnly: true,
+          measurementType: "raw_adc",
+          rawAdc: Number(data.rawAdc),
+          evidenceUrl: "",
+          createdAt,
+          createdBy: auth.currentUser.uid
+        });
+      }
+
+      await batch.commit();
+      return { alertId: alertRef.id };
+    },
     updateAlertStatus: (alertId, status) => {
       if (!["acknowledged", "resolved"].includes(status)) throw new Error("Invalid alert status.");
       return db.collection("alerts").doc(alertId).update({
