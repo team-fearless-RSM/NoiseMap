@@ -666,6 +666,69 @@
     });
   }
 
+  // Build a schematic, interactive room grid from the live public location and observation records.
+  function renderCampusFloorplan() {
+    const grid = document.getElementById("campusFloorplan");
+    if (!grid) return;
+    grid.setAttribute("aria-busy", "false");
+    grid.innerHTML = "";
+    if (!cachedLocations.length) {
+      const empty = document.createElement("p");
+      empty.className = "floorplan-empty";
+      empty.textContent = "No monitoring locations are registered yet. Add a location to place it on this schematic.";
+      grid.appendChild(empty);
+      return;
+    }
+
+    const timestampOf = item => {
+      const value = item && (item.timestamp || item.createdAt);
+      const date = value && typeof value.toDate === "function" ? value.toDate() : new Date(value || 0);
+      return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+    };
+    const latestForLocation = location => {
+      const records = cachedObservations.filter(item => {
+        const device = cachedDevices.find(entry => entry.id === item.deviceId);
+        const recordLocationId = item.locationId || (device && device.locationId);
+        return recordLocationId === location.id;
+      }).sort((a, b) => timestampOf(b) - timestampOf(a));
+      const real = records.find(item => item.isSimulated !== true);
+      return { real, test: real ? null : records.find(item => item.isSimulated === true) };
+    };
+
+    cachedLocations.forEach((location, index) => {
+      const latest = latestForLocation(location);
+      const record = latest.real;
+      const rawValue = record && (record.rawValue ?? record.rawAdc ?? record.raw_adc);
+      const raw = rawValue === undefined || rawValue === null ? NaN : Number(rawValue);
+      const valid = Number.isFinite(raw) && raw >= 0 && raw <= 1023;
+      const level = !valid ? "no-reading" : raw < 500 ? "is-green" : raw <= 750 ? "is-amber" : "is-red";
+      const card = document.createElement("a");
+      card.className = "floorplan-room " + level;
+      card.href = "#location-" + encodeURIComponent(location.id);
+      card.setAttribute("aria-label", (location.name || "Unnamed location") + (valid ? ", raw ADC " + raw : ", no non-simulated reading"));
+      const number = document.createElement("span");
+      number.className = "floorplan-room-number";
+      number.textContent = "ZONE " + String(index + 1).padStart(2, "0");
+      const name = document.createElement("strong");
+      name.className = "floorplan-room-name";
+      name.textContent = location.name || "Unnamed location";
+      const reading = document.createElement("span");
+      reading.className = "floorplan-room-reading";
+      reading.textContent = valid ? raw + " ADC" : latest.test ? "Test data only" : "No live reading";
+      const status = document.createElement("span");
+      status.className = "floorplan-room-status";
+      status.textContent = valid ? (raw < 500 ? "LOW ACTIVITY" : raw <= 750 ? "ELEVATED" : "HIGH ACTIVITY") : latest.test ? "SIMULATED" : "AWAITING DATA";
+      card.append(number, name, reading, status);
+      if (record) {
+        const time = document.createElement("small");
+        time.className = "floorplan-room-time";
+        time.textContent = "Updated " + formatAlertTime(record.timestamp || record.createdAt);
+        card.appendChild(time);
+      }
+      grid.appendChild(card);
+    });
+  }
+
   function locationReadingDate(item) {
     const value = item && (item.timestamp || item.createdAt);
     if (!value) return null;
@@ -902,6 +965,7 @@
       populateRecordLocationSelects(locations);
       renderLocations(locations);
       renderLocationDetailPages();
+      renderCampusFloorplan();
       renderDashboard();
       if (locationStatus) locationStatus.textContent = locations.length
         ? "Live Firestore data · " + locations.length + " location(s)"
@@ -1380,6 +1444,7 @@
   window.setInterval(() => {
     renderDevices(cachedDevices);
     renderLocationDetailPages();
+    renderCampusFloorplan();
     renderDashboard();
   }, 15000);
 
@@ -1390,6 +1455,7 @@
       renderDevices(items);
       renderObservations(cachedObservations);
       renderLocationDetailPages();
+      renderCampusFloorplan();
       renderDashboard();
     }, error => console.error("Could not load devices:", error));
   }
@@ -1406,6 +1472,7 @@
       renderObservations(items);
       renderDevices(cachedDevices);
       renderLocationDetailPages();
+      renderCampusFloorplan();
       renderDashboard();
     }, error => {
       console.error("Could not load observations:", error);
