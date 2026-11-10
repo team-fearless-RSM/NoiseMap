@@ -180,6 +180,17 @@
         <h1>Locations</h1>
         <p class="intro">Publicly view verified monitoring sites. Authorised team members can add records.</p>
         <p class="location-status-line" id="locationStatus" role="status">Connecting to Firestore…</p>
+        <section class="panel campus-floorplan-panel" aria-labelledby="floorplanTitle">
+          <div class="panel-heading">
+            <div><h2 id="floorplanTitle">Interactive monitoring floorplan</h2><p>Live room indicators from the latest saved sensor observations</p></div>
+            <span class="floorplan-live-key"><i class="floorplan-key-dot is-green"></i> Low <i class="floorplan-key-dot is-amber"></i> Elevated <i class="floorplan-key-dot is-red"></i> High</span>
+          </div>
+          <p class="floorplan-disclaimer">Schematic view only — rooms are arranged for display, not by their real physical positions. Indicators use raw ADC values, not calibrated dB or dB(A).</p>
+          <div class="floorplan-grid" id="campusFloorplan" aria-live="polite" aria-busy="true">
+            <p class="floorplan-empty">Loading monitoring locations…</p>
+          </div>
+          <div class="floorplan-scale"><span>Raw ADC scale</span><b>0–499 · Low</b><b>500–750 · Elevated</b><b>751–1023 · High</b></div>
+        </section>
         <form class="panel location-form" id="locationForm" hidden>
           <div class="panel-heading"><div><h2>Add a monitoring location</h2><p>Only authorised Team Fearless members can submit records.</p></div></div>
           <label for="locationName">Location name</label>
