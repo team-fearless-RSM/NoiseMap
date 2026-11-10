@@ -256,7 +256,7 @@
           <p class="audio-monitor-note">Uses raw ADC values, not calibrated dB/dB(A). Only authenticated ESP8266 readings are considered; simulated and manual test data are excluded. Consecutive readings must arrive no more than 15 seconds apart. A browser chime requires this page to remain open and audio to be enabled.</p>
         </section>
         <div class="alert-list" id="staffroomAlertList" aria-live="polite"></div>
-        <div class="panel empty-panel" id="alertsEmpty"><span class="empty-icon">✓</span><h2>No classroom alerts</h2><p>A sensor alert appears here only after authenticated device firmware submits a valid staffroom_alert event with three warnings. Physical end-to-end delivery still requires testing.</p></div>
+        <div class="panel empty-panel" id="alertsEmpty"><span class="empty-icon">✓</span><h2>No classroom alerts</h2><p>Hardware alerts appear after authenticated firmware submits a valid staffroom_alert event. Browser threshold incidents are saved here when an authorised team member is signed in and consecutive live ESP8266 readings remain above the selected raw ADC threshold.</p></div>
         <p class="alert-footnote">Test alerts are clearly marked. Only authorised team members can manage classroom alerts.</p>
       </section>
       <section class="page-content secondary-page" id="devices">
