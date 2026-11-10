@@ -1200,3 +1200,8 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 /* Accessibility: increase secondary navigation contrast without changing the palette. */
 .nav-link span{color:#78dce8!important}
 .side-label{color:#b5ccdc!important}
+
+
+.dashboard-setup-notice{margin:0 0 18px;padding:17px 19px;border:1px solid #cfe4ef;border-left:4px solid #4b9bc0;border-radius:10px;background:#eef6fa}
+.dashboard-setup-notice strong{display:block;color:#234b63;font-size:12px;margin-bottom:5px}
+.dashboard-setup-notice p{margin:0;color:#4d6e82;font-size:11px;line-height:1.65}
