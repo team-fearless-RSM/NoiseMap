@@ -288,16 +288,11 @@
     setText("liveLatestTime", latest ? formatAlertTime(latest.timestamp || latest.createdAt) : "No non-simulated reading yet");
     setText("liveReadingCount", real.length);
     setText("liveTestCount", tests.length);
-    const recentDeviceIds = new Set();
-    cachedDevices.forEach(device => {
-      const latestForDevice = [...cachedObservations].filter(item => item.deviceId === device.id &&
-        item.isSimulated !== true && item.source !== "browser_simulator")
-        .sort((a,b) => (parseDate(b)?.getTime() || 0) - (parseDate(a)?.getTime() || 0))[0];
-      const date = latestForDevice && parseDate(latestForDevice);
-      if (date && now - date.getTime() >= 0 && now - date.getTime() <= 5 * 60 * 1000 &&
-          (selectedLocation === "all" || device.locationId === selectedLocation)) recentDeviceIds.add(device.id);
-    });
-    setText("liveReportingDevices", recentDeviceIds.size);
+    const reportingDevices = cachedDevices.filter(device =>
+      getDeviceHeartbeatState(device, now).online &&
+      (selectedLocation === "all" || device.locationId === selectedLocation)
+    );
+    setText("liveReportingDevices", reportingDevices.length);
     const connection = document.getElementById("liveMonitorConnection");
     if (connection) connection.textContent = "Firestore updates · " + cachedObservations.length + " saved observation(s) loaded";
     const subtitle = document.getElementById("liveChartSubtitle");
@@ -490,16 +485,7 @@
   function renderDashboard() {
     renderLiveMonitoring();
     const activeLocations = cachedLocations.filter(item => String(item.status || "").toLowerCase() === "active");
-    const recentWindowMs = 5 * 60 * 1000;
     const now = Date.now();
-    const latestByDevice = new Map();
-    [...cachedObservations].sort((a, b) => {
-      const ad = dashboardDate(a.timestamp || a.createdAt);
-      const bd = dashboardDate(b.timestamp || b.createdAt);
-      return (bd ? bd.getTime() : 0) - (ad ? ad.getTime() : 0);
-    }).forEach(item => {
-      if (item.deviceId && !latestByDevice.has(item.deviceId)) latestByDevice.set(item.deviceId, item);
-    });
     const recentlyReporting = cachedDevices.filter(device =>
       getDeviceHeartbeatState(device, now).online
     ).length;
@@ -738,14 +724,14 @@
       latest: observations.find(item => item.deviceId === device.id) || null
     }));
     const latestObservation = observations[0] || null;
-    const latestDate = locationReadingDate(latestObservation);
-    const isRecent = !!latestObservation && !latestObservation.isSimulated && !!latestDate && Date.now() - latestDate.getTime() >= 0 && Date.now() - latestDate.getTime() <= 5 * 60 * 1000;
+    const onlineDeviceCount = devices.filter(device => getDeviceHeartbeatState(device).online).length;
+    const isRecent = onlineDeviceCount > 0;
     const summary = document.createElement("div");
     summary.className = "location-detail-summary";
     const summaryItems = [
       ["Location status", location.status || "planned"],
       ["Registered sensors", String(devices.length)],
-      ["Sensor status", latestObservation ? (latestObservation.isSimulated ? "Simulated test only" : isRecent ? "Recent reading · 5 min" : "No recent data") : "Awaiting data"],
+      ["Sensor status", isRecent ? onlineDeviceCount + " online · heartbeat" : devices.length ? "Offline · no recent heartbeat" : "No sensor assigned"],
       ["Latest raw reading", latestObservation ? String(latestObservation.rawValue ?? latestObservation.rawAdc ?? latestObservation.raw_adc ?? "—") + " ADC" : "—"]
     ];
     summaryItems.forEach(([label,value]) => {
@@ -759,7 +745,7 @@
 
     const statusNote = document.createElement("p");
     statusNote.className = "location-detail-note";
-    statusNote.textContent = "Connection status is based on an authenticated server heartbeat: Online for up to 2 minutes after the last heartbeat, otherwise Offline. Raw ADC readings are not dB or dB(A).";
+    statusNote.textContent = "Online means an authenticated server heartbeat was received within the last 2 minutes. Last reading time is shown separately. Raw ADC readings are not dB or dB(A).";
     section.appendChild(statusNote);
 
     const devicePanel = document.createElement("section");
