@@ -674,14 +674,8 @@
     container.innerHTML = "";
 
     const floors = [
-      { label: "2nd Floor", rooms: [
-        ["202", "Grade 9"], ["203", "Grade 8"], ["204", "Grade 9"],
-        ["205", "Grade 9"], ["420", "Grade 10"], ["421", "Grade 10"]
-      ]},
-      { label: "3rd Floor", rooms: [
-        ["301", "Principal room"], ["302", "Staffroom"], ["303", "Science lab"],
-        ["304", "Grade 8"], ["305", "Grade 8"], ["306", "Computer lab"], ["307", "Grade 8"]
-      ]}
+      { label: "2nd Floor", rooms: ["202", "203", "204", "205", "420", "421"] },
+      { label: "3rd Floor", rooms: ["301", "302", "303", "304", "305", "306", "307"] }
     ];
 
     const timestampOf = item => {
@@ -713,7 +707,7 @@
       section.appendChild(heading);
       const grid = document.createElement("div");
       grid.className = "floorplan-grid";
-      floor.rooms.forEach(([roomNumber, roomType]) => {
+      floor.rooms.forEach(roomNumber => {
         const location = cachedLocations.find(item => roomCodeOf(item) === roomNumber);
         const card = document.createElement(location ? "a" : "article");
         const latest = location ? latestForLocation(location) : { real: null, test: null };
@@ -725,16 +719,16 @@
         card.className = "floorplan-room " + level + (location ? "" : " is-unregistered");
         if (location) {
           card.href = "#location-" + encodeURIComponent(location.id);
-          card.setAttribute("aria-label", "Room " + roomNumber + ", " + roomType + (valid ? ", raw ADC " + raw : ", no non-simulated reading"));
+          card.setAttribute("aria-label", "Room " + roomNumber + (valid ? ", raw ADC " + raw : ", no non-simulated reading"));
         } else {
-          card.setAttribute("aria-label", "Room " + roomNumber + ", " + roomType + ", no sensor location registered");
+          card.setAttribute("aria-label", "Room " + roomNumber + ", no sensor location registered");
         }
         const number = document.createElement("span");
         number.className = "floorplan-room-number";
-        number.textContent = "ROOM " + roomNumber;
+        number.textContent = "ROOM";
         const name = document.createElement("strong");
         name.className = "floorplan-room-name";
-        name.textContent = roomType;
+        name.textContent = roomNumber;
         const reading = document.createElement("span");
         reading.className = "floorplan-room-reading";
         reading.textContent = valid ? raw + " ADC" : !location ? "No sensor registered" : latest.test ? "Test data only" : "No live reading";
@@ -753,35 +747,6 @@
       section.appendChild(grid);
       container.appendChild(section);
     });
-
-    const otherLocations = cachedLocations.filter(location => !roomCodeOf(location));
-    if (otherLocations.length) {
-      const section = document.createElement("section");
-      section.className = "floorplan-floor";
-      const heading = document.createElement("h3");
-      heading.className = "floorplan-floor-title";
-      heading.textContent = "Other registered locations";
-      section.appendChild(heading);
-      const grid = document.createElement("div");
-      grid.className = "floorplan-grid";
-      otherLocations.forEach(location => {
-        const latest = latestForLocation(location);
-        const record = latest.real;
-        const rawValue = record && (record.rawValue ?? record.rawAdc ?? record.raw_adc);
-        const raw = rawValue === undefined || rawValue === null ? NaN : Number(rawValue);
-        const valid = Number.isFinite(raw) && raw >= 0 && raw <= 1023;
-        const card = document.createElement("a");
-        card.className = "floorplan-room " + (!valid ? "no-reading" : raw < 500 ? "is-green" : raw <= 750 ? "is-amber" : "is-red");
-        card.href = "#location-" + encodeURIComponent(location.id);
-        const number = document.createElement("span"); number.className = "floorplan-room-number"; number.textContent = "OTHER LOCATION";
-        const name = document.createElement("strong"); name.className = "floorplan-room-name"; name.textContent = location.name || "Unnamed location";
-        const reading = document.createElement("span"); reading.className = "floorplan-room-reading"; reading.textContent = valid ? raw + " ADC" : latest.test ? "Test data only" : "No live reading";
-        const status = document.createElement("span"); status.className = "floorplan-room-status"; status.textContent = valid ? (raw < 500 ? "LOW ACTIVITY" : raw <= 750 ? "ELEVATED" : "HIGH ACTIVITY") : latest.test ? "SIMULATED" : "AWAITING DATA";
-        card.append(number, name, reading, status); grid.appendChild(card);
-      });
-      section.appendChild(grid);
-      container.appendChild(section);
-    }
   }
 
   function locationReadingDate(item) {
