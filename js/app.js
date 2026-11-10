@@ -53,6 +53,72 @@
   const NM_HEARTBEAT_TIMEOUT_MS = 120000;
   let observationsConnectionReady = false;
 
+  const audioMonitorStatus = document.getElementById("audioMonitorStatus");
+  if (window.NoiseAudio) {
+    window.NoiseAudio.init({
+      onIncident: async incident => {
+        if (!canEditAlerts || !window.NoiseMap || !window.NoiseMap.configured) {
+          throw new Error("Sign in with an authorised Team Fearless account to save threshold incidents.");
+        }
+        if (cachedAlerts.some(alert => alert.id === incident.incidentId)) return { duplicate: true };
+        return window.NoiseMap.addAlert({
+          incidentId: incident.incidentId,
+          locationId: incident.locationId,
+          classroomName: incident.locationName,
+          deviceId: incident.deviceId,
+          rawAdc: incident.rawAdc,
+          thresholdAdc: incident.thresholdAdc,
+          triggerDurationSeconds: incident.durationSeconds,
+          incidentStartedAt: incident.startAt,
+          warningCount: 0,
+          source: "web_audio_threshold"
+        });
+      }
+    });
+  }
+
+  function updateAudioMonitorFromObservations(items) {
+    if (!window.NoiseAudio) return;
+    if (!canManageRecords) {
+      window.NoiseAudio.resetAll();
+      return;
+    }
+    const latestByLocation = new Map();
+    (items || []).forEach(observation => {
+      if (!observation || observation.isSimulated === true || observation.source !== "esp8266") return;
+      const device = cachedDevices.find(entry => entry.id === observation.deviceId);
+      const locationId = observation.locationId || (device && device.locationId);
+      const date = dashboardDate(observation.timestamp || observation.createdAt);
+      if (!locationId || !date) return;
+      const existing = latestByLocation.get(locationId);
+      if (!existing || date.getTime() > existing.date.getTime()) {
+        latestByLocation.set(locationId, { observation, device, date });
+      }
+    });
+
+    const now = Date.now();
+    latestByLocation.forEach((entry, locationId) => {
+      const observation = entry.observation;
+      const location = cachedLocations.find(item => item.id === locationId);
+      const raw = observation.rawValue ?? observation.rawAdc ?? observation.raw_adc;
+      window.NoiseAudio.evaluateReading({
+        locationId,
+        locationName: location ? location.name : "Classroom",
+        deviceId: observation.deviceId,
+        readingId: observation.id,
+        adc: Number(raw),
+        timestamp: entry.date.getTime(),
+        source: observation.source,
+        isOnline: Boolean(entry.device && getDeviceHeartbeatState(entry.device, now).online)
+      });
+    });
+
+    cachedLocations.forEach(location => {
+      if (!latestByLocation.has(location.id)) window.NoiseAudio.resetLocation(location.id);
+    });
+  }
+
+
   function setLoadingTimeout(element, loadingText, timeoutMessage, delayMs = 10000) {
     if (!element) return;
     window.setTimeout(() => {
@@ -979,6 +1045,7 @@
     if (locationUnsubscribe) locationUnsubscribe();
     locationUnsubscribe = window.NoiseMap.subscribeLocations(locations => {
       cachedLocations = locations;
+      updateAudioMonitorFromObservations(cachedObservations);
       populateAlertLocations(locations);
       populateLiveMonitoringLocations(locations);
       renderLiveMonitoring();
@@ -1016,6 +1083,7 @@
         connectAlerts();
         connectActions();
       } else {
+        if (window.NoiseAudio) window.NoiseAudio.resetAll();
         if (alertUnsubscribe) { alertUnsubscribe(); alertUnsubscribe = null; }
         if (actionUnsubscribe) { actionUnsubscribe(); actionUnsubscribe = null; }
         cachedAlerts = [];
@@ -1072,9 +1140,17 @@
       top.append(heading, status);
       const detail = document.createElement("p");
       detail.className = "staff-alert-detail";
-      detail.textContent = "Noise remained high after " + Number(alert.warningCount || 3) + " warnings · Raw sensor reading: " +
-        (Number.isFinite(Number(alert.rawAdc)) ? alert.rawAdc + " ADC" : "not recorded") +
-        (alert.source === "manual_test" ? " · TEST ALERT" : "");
+      if (alert.source === "web_audio_threshold") {
+        detail.textContent = "Sustained raw ADC threshold event · " +
+          Number(alert.triggerDurationSeconds || 5) + " seconds · trigger " +
+          (Number.isFinite(Number(alert.thresholdAdc)) ? alert.thresholdAdc + " ADC" : "threshold unavailable") +
+          " · latest " + (Number.isFinite(Number(alert.rawAdc)) ? alert.rawAdc + " ADC" : "reading unavailable") +
+          " · browser monitor";
+      } else {
+        detail.textContent = "Noise remained high after " + Number(alert.warningCount || 3) + " warnings · Raw sensor reading: " +
+          (Number.isFinite(Number(alert.rawAdc)) ? alert.rawAdc + " ADC" : "not recorded") +
+          (alert.source === "manual_test" ? " · TEST ALERT" : "");
+      }
       card.append(top, detail);
       if (canEditAlerts) {
         const actions = document.createElement("div");
@@ -1472,6 +1548,7 @@
     if (!window.NoiseMap || !window.NoiseMap.configured) return;
     deviceUnsubscribe = window.NoiseMap.subscribeDevices(items => {
       cachedDevices = items;
+      updateAudioMonitorFromObservations(cachedObservations);
       renderDevices(items);
       renderObservations(cachedObservations);
       renderLocationDetailPages();
@@ -1489,6 +1566,7 @@
     observationUnsubscribe = window.NoiseMap.subscribeObservations(items => {
       observationsConnectionReady = true;
       cachedObservations = items;
+      updateAudioMonitorFromObservations(items);
       renderObservations(items);
       renderDevices(cachedDevices);
       renderLocationDetailPages();
