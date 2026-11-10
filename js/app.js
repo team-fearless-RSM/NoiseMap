@@ -1096,7 +1096,7 @@
           warningCount: 3,
           source: "manual_test"
         });
-        if (alertTestMessage) alertTestMessage.textContent = "Test alert and matching TEST ONLY Action Tracker recommendation created.";
+        if (alertTestMessage) alertTestMessage.textContent = "TEST ALERT created. No sensor event or Action Tracker record was generated.";
       } catch (error) {
         console.error("Could not create test alert:", error);
         if (alertTestMessage) alertTestMessage.textContent = error.code === "permission-denied"
