@@ -1189,3 +1189,9 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 /* Respect the HTML hidden state even when a section is the current hash target. */
 [hidden]{display:none!important}
 .nav-link:focus-visible{outline:3px solid #75e4d8;outline-offset:3px}
+
+
+.alert-flow-list{margin:16px 0 22px;padding-left:22px;color:#607684;font-size:12px;line-height:1.8}
+.alert-flow-list li{padding:0 0 10px 5px}
+.alert-flow-list strong{color:#294354}
+.alert-flow-list code{font-size:11px;background:#f0f4f6;border-radius:4px;padding:2px 4px;color:#31546a}
