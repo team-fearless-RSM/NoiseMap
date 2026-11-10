@@ -1079,6 +1079,7 @@
         }
       }
       showWorkspace(user, isEditor);
+      updateAudioMonitorFromObservations(cachedObservations);
       if (isEditor) {
         connectAlerts();
         connectActions();
