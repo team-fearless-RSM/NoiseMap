@@ -167,7 +167,7 @@ window.NOISEMAP_FIREBASE_CONFIG = {
     addDevice: data => db.collection("devices").add({
       deviceId: String(data.deviceId || "").trim(),
       locationId: data.locationId || null,
-      hardware: data.hardware || "Arduino UNO + LM393",
+      hardware: data.hardware || "Arduino Uno + LM393 (4-pin) + HC-05",
       connectionStatus: data.connectionStatus || "offline",
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: auth.currentUser.uid
