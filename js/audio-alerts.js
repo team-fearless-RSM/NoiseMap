@@ -3,7 +3,7 @@
  * Uses consecutive, authenticated ESP8266 raw-ADC observations only.
  * Raw ADC is not calibrated dB/dB(A). The page must remain open to monitor.
  */
-const NoiseAudio = (() => {
+window.NoiseAudio = (() => {
   const STORAGE_KEY = "noisemap.audioAlerts.enabled";
   const TRACKER_KEY = "noisemap.audioAlerts.breaches";
   const MAX_SAMPLE_GAP_MS = 15000;
