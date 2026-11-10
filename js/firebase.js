@@ -95,22 +95,42 @@ window.NOISEMAP_FIREBASE_CONFIG = {
       .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
     addAlert: async data => {
       if (!auth.currentUser) throw new Error("Sign in with an authorised team account first.");
-      const alertRef = db.collection("alerts").doc();
-      const createdAt = firebase.firestore.FieldValue.serverTimestamp();
       const source = data.source || "manual_test";
-
-      // Alerts are recorded without creating a separate teacher action or paperwork.
-      await alertRef.set({
+      const incidentId = typeof data.incidentId === "string" &&
+        /^[A-Za-z0-9_-]{1,120}$/.test(data.incidentId) ? data.incidentId : null;
+      const alertRef = incidentId ? db.collection("alerts").doc(incidentId) : db.collection("alerts").doc();
+      const createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      const record = {
         locationId: data.locationId || null,
         classroomName: String(data.classroomName || "Unknown classroom").trim(),
         rawAdc: Number(data.rawAdc),
-        warningCount: 3,
+        warningCount: Number.isInteger(data.warningCount) ? data.warningCount : 3,
         status: "open",
         source,
         createdAt,
         createdBy: auth.currentUser.uid
-      });
-      return { alertId: alertRef.id };
+      };
+      if (Number.isFinite(Number(data.thresholdAdc))) record.thresholdAdc = Number(data.thresholdAdc);
+      if (Number.isFinite(Number(data.triggerDurationSeconds))) record.triggerDurationSeconds = Number(data.triggerDurationSeconds);
+      if (data.deviceId) record.deviceId = String(data.deviceId);
+      if (Number.isFinite(Number(data.incidentStartedAt))) {
+        record.incidentStartedAt = firebase.firestore.Timestamp.fromMillis(Number(data.incidentStartedAt));
+      }
+
+      // Stable incident IDs make repeated browser snapshots idempotent.
+      if (incidentId) {
+        let created = false;
+        await db.runTransaction(async transaction => {
+          const existing = await transaction.get(alertRef);
+          if (existing.exists) return;
+          transaction.create(alertRef, record);
+          created = true;
+        });
+        return { alertId: alertRef.id, created, duplicate: !created };
+      }
+
+      await alertRef.set(record);
+      return { alertId: alertRef.id, created: true, duplicate: false };
     },
     updateAlertStatus: (alertId, status) => {
       if (!["acknowledged", "resolved"].includes(status)) throw new Error("Invalid alert status.");

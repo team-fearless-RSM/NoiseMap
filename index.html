@@ -211,7 +211,7 @@
       <section class="page-content secondary-page" id="alerts" data-team-only="true" hidden>
         <div class="eyebrow">CLASSROOM MONITORING</div>
         <h1>Staffroom Alerts</h1>
-        <p class="intro">Staff-only records of alert events received from authenticated devices and clearly labelled team tests.</p>
+        <p class="intro">Staff-only records of sustained classroom noise events from authenticated devices, browser threshold monitoring and clearly labelled team tests. Browser monitoring works only while this page is open.</p>
         <div class="alert-summary"><span class="alert-live-dot"></span><span id="alertConnectionStatus">Connecting to live alerts…</span></div>
         <form class="panel alert-test-form" id="alertTestForm" hidden>
           <div class="panel-heading"><div><h2>Test the staffroom dashboard</h2>Create a clearly labelled test alert. This does not come from the sensor and does not create an Action Tracker record.</div><span class="pill">TEAM ONLY</span></div>
@@ -222,8 +222,41 @@
           <button class="location-submit" id="alertTestSubmit" type="submit">Create test alert</button>
           <p class="location-form-message" id="alertTestMessage" role="status" aria-live="polite"></p>
         </form>
+
+        <section class="panel alert-settings-panel" aria-labelledby="audioMonitorTitle">
+          <div class="alert-settings-header">
+            <div>
+              <h2 id="audioMonitorTitle">Staffroom Audio Monitor</h2>
+              <p>Play a browser chime and save an incident when consecutive live sensor readings remain above the selected raw ADC threshold.</p>
+            </div>
+            <div class="alert-controls">
+              <label class="toggle-switch" for="audioAlertToggle">
+                <input type="checkbox" id="audioAlertToggle">
+                <span class="slider" aria-hidden="true"></span>
+                <span class="toggle-label">Sound Enabled</span>
+              </label>
+              <button class="secondary-button" id="testToneBtn" type="button">Test Chime 🔔</button>
+            </div>
+          </div>
+          <div class="alert-threshold-row">
+            <div class="threshold-input-group">
+              <label for="thresholdAdcInput">Trigger Level (ADC):</label>
+              <input type="number" id="thresholdAdcInput" value="700" min="200" max="1000" step="25">
+            </div>
+            <div class="threshold-input-group">
+              <label for="sustainedSecInput">Sustained Duration:</label>
+              <select id="sustainedSecInput">
+                <option value="3">3 Seconds</option>
+                <option value="5" selected>5 Seconds</option>
+                <option value="10">10 Seconds</option>
+              </select>
+            </div>
+          </div>
+          <p class="audio-monitor-status" id="audioMonitorStatus" role="status" aria-live="polite">Audio alerts are off until enabled. The browser page must remain open to monitor.</p>
+          <p class="audio-monitor-note">Uses raw ADC values, not calibrated dB/dB(A). Only authenticated ESP8266 readings are considered; simulated and manual test data are excluded. Consecutive readings must arrive no more than 15 seconds apart. A browser chime requires this page to remain open and audio to be enabled.</p>
+        </section>
         <div class="alert-list" id="staffroomAlertList" aria-live="polite"></div>
-        <div class="panel empty-panel" id="alertsEmpty"><span class="empty-icon">✓</span><h2>No classroom alerts</h2><p>A sensor alert appears here only after authenticated device firmware submits a valid staffroom_alert event with three warnings. Physical end-to-end delivery still requires testing.</p></div>
+        <div class="panel empty-panel" id="alertsEmpty"><span class="empty-icon">✓</span><h2>No classroom alerts</h2><p>Hardware alerts appear after authenticated firmware submits a valid staffroom_alert event. Browser threshold incidents are saved here when an authorised team member is signed in and consecutive live ESP8266 readings remain above the selected raw ADC threshold.</p></div>
         <p class="alert-footnote">Test alerts are clearly marked. Only authorised team members can manage classroom alerts.</p>
       </section>
       <section class="page-content secondary-page" id="devices">
@@ -340,6 +373,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="js/firebase.js"></script>
+  <script src="js/audio-alerts.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

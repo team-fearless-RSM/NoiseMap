@@ -19,6 +19,19 @@ NoiseMap is a prototype for recording sound observations at selected locations, 
 
 **Important:** The dashboard still displays illustrative sample data. Firebase is not active until a real project configuration is added. No live sensor readings are connected. Raw LM393 analogue values or comparator outputs must not be presented as dB or dB(A).
 
+## Staffroom browser audio alerts
+
+The Staffroom Alerts page includes a browser-based audio monitor. An authorised team member can enable the sound toggle, test the synthesized Web Audio chime, and select a raw ADC trigger level (default 700) and sustained duration (default 5 seconds).
+
+- The monitor evaluates only non-simulated observations whose source is `esp8266`, and requires the associated device heartbeat to be online.
+- A breach is recorded only after consecutive readings remain at or above the selected threshold for the selected duration. Readings more than 15 seconds apart reset the sustained interval because continuity cannot be established.
+- Each browser-detected incident is saved to the existing staff-only `alerts` collection with an idempotent incident ID, threshold, duration, device, and raw ADC reading.
+- The sound preference is stored in that browser. The browser page must remain open, the user must be signed in as an authorised team member for incident logging, and browser audio must be enabled by a user gesture.
+- Simulated and manually entered observations are excluded. Hardware firmware alerts continue to use the existing authenticated `staffroom_alert` event flow.
+
+**Measurement limitation:** This feature uses raw ADC thresholds only. It does not measure calibrated dB/dB(A), identify a sound source, or establish a legal noise violation. The 15-second sample-gap rule is a software safeguard; confirm that the device firmware sends readings frequently enough before relying on the monitor in a live classroom.
+
+
 ## GitHub Pages deployment
 
 The repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`. When changes are pushed to `main`, it packages only the static website files (`index.html`, `css/style.css`, and the browser scripts in `js/`) and deploys them to GitHub Pages. It does not deploy Firebase Functions or Firestore rules.
