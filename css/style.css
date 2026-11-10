@@ -1195,3 +1195,8 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 .alert-flow-list li{padding:0 0 10px 5px}
 .alert-flow-list strong{color:#294354}
 .alert-flow-list code{font-size:11px;background:#f0f4f6;border-radius:4px;padding:2px 4px;color:#31546a}
+
+
+/* Accessibility: increase secondary navigation contrast without changing the palette. */
+.nav-link span{color:#78dce8!important}
+.side-label{color:#b5ccdc!important}
