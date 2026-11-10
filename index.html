@@ -141,7 +141,7 @@
         <div class="live-monitor-kpis">
           <article class="stat-card"><div class="stat-top"><span>Latest non-simulated reading</span><span class="stat-icon teal">●</span></div><div class="stat-value" id="liveLatestValue">—</div><div class="stat-foot" id="liveLatestTime">No non-simulated reading yet</div></article>
           <article class="stat-card"><div class="stat-top"><span>Non-simulated readings in range</span><span class="stat-icon blue">⌁</span></div><div class="stat-value" id="liveReadingCount">0</div><div class="stat-foot">Simulated records excluded</div></article>
-          <article class="stat-card"><div class="stat-top"><span>Reporting devices</span><span class="stat-icon violet">◉</span></div><div class="stat-value" id="liveReportingDevices">0</div><div class="stat-foot">Non-simulated reading saved in last 5 minutes</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Reporting devices</span><span class="stat-icon violet">◉</span></div><div class="stat-value" id="liveReportingDevices">0</div><div class="stat-foot">Authenticated heartbeat received within the last 2 minutes</div></article>
           <article class="stat-card"><div class="stat-top"><span>Test readings</span><span class="stat-icon amber">!</span></div><div class="stat-value" id="liveTestCount">0</div><div class="stat-foot">Shown separately; not environmental evidence</div></article>
         </div>
         <section class="panel live-monitor-chart-panel">
@@ -210,7 +210,7 @@
         <div class="eyebrow">WORKSPACE</div><h1>Devices</h1>
         <p class="intro">View registered sensor units. Authorised Team Fearless members can add and delete device records.</p>
         <section class="device-monitoring" aria-label="Device monitoring overview">
-          <div class="device-monitoring-heading"><div><h2>Device monitoring</h2><p>Reporting status is based on the latest saved observation, not a live hardware heartbeat.</p></div><span class="device-monitoring-tag">SENSOR NETWORK</span></div>
+          <div class="device-monitoring-heading"><div><h2>Device monitoring</h2><p>Online means an authenticated server heartbeat was received within the last 2 minutes. Last reading time is shown separately.</p></div><span class="device-monitoring-tag">SENSOR NETWORK</span></div>
           <div class="device-monitoring-stats">
             <article class="device-monitor-stat"><span>Registered devices</span><strong id="deviceTotal">0</strong></article>
             <article class="device-monitor-stat"><span>Online devices</span><strong id="deviceRecent">0</strong></article>
