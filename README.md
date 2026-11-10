@@ -19,6 +19,15 @@ NoiseMap is a prototype for recording sound observations at selected locations, 
 
 **Important:** The dashboard still displays illustrative sample data. Firebase is not active until a real project configuration is added. No live sensor readings are connected. Raw LM393 analogue values or comparator outputs must not be presented as dB or dB(A).
 
+## GitHub Pages deployment
+
+The repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`. When changes are pushed to `main`, it packages only the static website files (`index.html`, `css/style.css`, and the browser scripts in `js/`) and deploys them to GitHub Pages. It does not deploy Firebase Functions or Firestore rules.
+
+**One-time repository setting:** Open **Settings → Pages → Build and deployment** and set **Source** to **GitHub Actions**. After this is selected, merges to `main` trigger deployment automatically. The deployment URL and status appear under the workflow run and in **Settings → Pages**.
+
+GitHub Pages hosts the front-end only. Firebase Authentication and Firestore will remain unavailable until the Firebase Web App configuration is added and the Firebase services/rules are deployed separately.
+
+
 ## Repository structure
 
 ```
