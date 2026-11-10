@@ -108,15 +108,19 @@
           <article class="stat-card"><div class="stat-top"><span>Active locations</span><span class="stat-icon teal">⌖</span></div><div class="stat-value" id="dashboardActiveLocations">0</div><div class="stat-foot">Locations marked active</div></article>
           <article class="stat-card"><div class="stat-top"><span>Registered sensors</span><span class="stat-icon blue">⌁</span></div><div class="stat-value" id="dashboardDeviceTotal">0</div><div class="stat-foot">Devices registered in NoiseMap</div></article>
           <article class="stat-card"><div class="stat-top"><span>Online sensors</span><span class="stat-icon violet">◉</span></div><div class="stat-value" id="dashboardRecentDevices">0</div><div class="stat-foot">Heartbeat received within the last 2 minutes</div></article>
-          <article class="stat-card"><div class="stat-top"><span>Open alerts</span><span class="stat-icon amber">!</span></div><div class="stat-value" id="dashboardOpenAlerts">0</div><div class="stat-foot">Alerts needing follow-up</div></article>
+          <article class="stat-card" data-team-only="true" hidden><div class="stat-top"><span>Open alerts</span><span class="stat-icon amber">!</span></div><div class="stat-value" id="dashboardOpenAlerts">0</div><div class="stat-foot">Alerts needing follow-up</div></article>
         </section>
+        <div class="dashboard-setup-notice" id="dashboardSetupNotice" role="status" hidden>
+          <strong>No monitoring records are available yet.</strong>
+          <p>If you expected locations or readings here, check the Firestore connection and public read permissions. Otherwise, an authorised team member can register a monitoring location and device to begin populating the dashboard.</p>
+        </div>
         <p class="dashboard-data-note">Online status requires an authenticated device heartbeat within the last 2 minutes. A stale or missing heartbeat is Offline. Raw ADC values are not calibrated dB or dB(A).</p>
         <section class="content-grid dashboard-content-grid">
           <div class="panel">
             <div class="panel-heading"><div><h2>Latest sensor readings</h2><p>Most recent observations recorded by registered devices</p></div><a class="text-link" href="#history">View history →</a></div>
             <div class="dashboard-record-list" id="dashboardLatestReadings" aria-live="polite"><p class="dashboard-empty-text">No sensor readings recorded yet.</p></div>
           </div>
-          <div class="panel">
+          <div class="panel" data-team-only="true" hidden>
             <div class="panel-heading"><div><h2>Recent alerts</h2><p>Latest classroom noise alerts</p></div><a class="text-link" href="#alerts">View all →</a></div>
             <div class="dashboard-record-list" id="dashboardRecentAlerts" aria-live="polite"><p class="dashboard-empty-text">No alerts recorded yet.</p></div>
           </div>
