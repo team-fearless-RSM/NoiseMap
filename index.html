@@ -291,11 +291,11 @@
           <div class="firestore-location-list" id="endpointTestList" aria-live="polite"></div>
         </section>
         <form class="panel location-form record-form" id="deviceForm" hidden>
-          <div class="panel-heading"><div><h2>Register a device</h2><p>Adding a device record does not mean it is connected or sending live readings.</p></div></div>
+          <div class="panel-heading"><div><h2>Register a device</h2><p>Register the planned Arduino-based sensor unit. Registration does not connect hardware or create live readings.</p></div></div>
           <label for="deviceId">Device name / ID</label><input id="deviceId" required maxlength="100" placeholder="e.g. NM-CLASS-01">
           <label for="deviceLocation">Classroom / location</label><select id="deviceLocation"><option value="">Select a location</option></select>
-          <label for="deviceHardware">Hardware</label><input id="deviceHardware" value="NodeMCU ESP8266 + LM393" maxlength="150">
-          <label for="deviceStatus">Connection status</label><select id="deviceStatus"><option value="offline">Offline</option><option value="planned">Planned</option><option value="online">Online (verified only)</option></select>
+          <label for="deviceHardware">Hardware</label><input id="deviceHardware" value="Arduino Uno + LM393 (4-pin) + HC-05" maxlength="150">
+          <label for="deviceStatus">Connection status</label><select id="deviceStatus"><option value="planned" selected>Planned</option><option value="offline">Offline</option></select>
           <button class="location-submit" id="deviceSubmit" type="submit">Add device</button><p class="location-form-message" id="deviceFormMessage" role="status"></p>
         </form>
         <div class="firestore-location-list" id="deviceList" aria-live="polite"></div>
