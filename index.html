@@ -200,7 +200,7 @@
       <section class="page-content secondary-page" id="alerts" data-team-only="true" hidden>
         <div class="eyebrow">CLASSROOM MONITORING</div>
         <h1>Staffroom Alerts</h1>
-        <p class="intro">Live classroom alerts for teachers. Alerts are created after three unsuccessful classroom warnings.</p>
+        <p class="intro">Staff-only records of alert events received from authenticated devices and clearly labelled team tests.</p>
         <div class="alert-summary"><span class="alert-live-dot"></span><span id="alertConnectionStatus">Connecting to live alerts…</span></div>
         <form class="panel alert-test-form" id="alertTestForm" hidden>
           <div class="panel-heading"><div><h2>Test the staffroom dashboard</h2>Create a clearly labelled test alert. This does not come from the sensor and does not create an Action Tracker record.</div><span class="pill">TEAM ONLY</span></div>
@@ -212,7 +212,7 @@
           <p class="location-form-message" id="alertTestMessage" role="status" aria-live="polite"></p>
         </form>
         <div class="alert-list" id="staffroomAlertList" aria-live="polite"></div>
-        <div class="panel empty-panel" id="alertsEmpty"><span class="empty-icon">✓</span><h2>No classroom alerts</h2><p>When a classroom remains noisy after three warnings, its alert will appear here for teachers.</p></div>
+        <div class="panel empty-panel" id="alertsEmpty"><span class="empty-icon">✓</span><h2>No classroom alerts</h2><p>A sensor alert appears here only after authenticated device firmware submits a valid staffroom_alert event with three warnings. Physical end-to-end delivery still requires testing.</p></div>
         <p class="alert-footnote">Test alerts are clearly marked. Only authorised team members can manage classroom alerts.</p>
       </section>
       <section class="page-content secondary-page" id="devices">
@@ -284,7 +284,7 @@
           <button class="location-submit" id="actionSubmit" type="submit">Add action</button><p class="location-form-message" id="actionFormMessage" role="status"></p>
         </form>
         <div class="firestore-location-list" id="actionList" aria-live="polite"></div>
-        <div class="panel empty-panel" id="actionEmpty"><span class="empty-icon">✓</span><h2>No action recommendations yet</h2><p>Automatic recommendations will appear here after a verified device alert. Manual records can still be added for actions that have actually happened.</p></div>
+        <div class="panel empty-panel" id="actionEmpty"><span class="empty-icon">✓</span><h2>No action records yet</h2><p>Authorised staff can record follow-up actions that have actually taken place. Automatic recommendations are planned, not active in the current backend.</p></div>
       </section>
       <section class="page-content secondary-page" id="about"><div class="eyebrow">THE PROJECT</div><h1>About NoiseMap</h1><p class="intro">Making local sound observations easier to understand and act on.</p><div class="panel about-panel">
   <h2>Our approach</h2>
