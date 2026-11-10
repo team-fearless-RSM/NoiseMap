@@ -230,6 +230,9 @@
     canEditAlerts = Boolean(user && isEditor);
     canEditLocations = Boolean(user && isEditor);
     canManageRecords = Boolean(user && isEditor);
+    document.querySelectorAll('[data-team-only="true"]').forEach(element => {
+      element.hidden = !canManageRecords;
+    });
     const endpointTestPanel = document.getElementById("endpointTestPanel");
     if (endpointTestPanel) endpointTestPanel.hidden = !canManageRecords;
     if (canManageRecords) {
@@ -910,10 +913,8 @@
   if (window.NoiseMap && window.NoiseMap.configured) {
     connectVisitorCounter();
     connectLocations();
-    connectAlerts();
     connectDevices();
     connectObservations();
-    connectActions();
     window.NoiseMap.onAuthStateChanged(async user => {
       currentUser = user;
       let isEditor = false;
@@ -925,6 +926,17 @@
         }
       }
       showWorkspace(user, isEditor);
+      if (isEditor) {
+        connectAlerts();
+        connectActions();
+      } else {
+        if (alertUnsubscribe) { alertUnsubscribe(); alertUnsubscribe = null; }
+        if (actionUnsubscribe) { actionUnsubscribe(); actionUnsubscribe = null; }
+        cachedAlerts = [];
+        cachedActions = [];
+        renderAlerts([]);
+        renderActions([]);
+      }
     });
   } else {
     showWorkspace(null, false);
@@ -1039,7 +1051,7 @@
   }
 
   function connectAlerts() {
-    if (!window.NoiseMap || !window.NoiseMap.configured || !alertList) return;
+    if (!canManageRecords || !window.NoiseMap || !window.NoiseMap.configured || !alertList) return;
     if (alertStatusLine) alertStatusLine.textContent = "Loading staffroom alerts…";
     setLoadingTimeout(alertStatusLine, "Loading staffroom alerts…", "Alerts are taking too long to load. Sign in with an authorised team account or check the connection.");
     if (alertUnsubscribe) alertUnsubscribe();
@@ -1457,7 +1469,7 @@
   }
 
   function connectActions() {
-    if (!window.NoiseMap || !window.NoiseMap.configured) return;
+    if (!canManageRecords || !window.NoiseMap || !window.NoiseMap.configured) return;
     actionUnsubscribe = window.NoiseMap.subscribeActions(items => {
       cachedActions = items;
       renderActions(items);
@@ -1653,6 +1665,10 @@
   function setActive() {
     const id = (location.hash || "#overview").slice(1);
     const pageId = id.startsWith("location-") ? "locations" : id;
+    if ((pageId === "alerts" || pageId === "actions") && !canManageRecords) {
+      if (location.hash !== "#overview") location.hash = "#overview";
+      return;
+    }
     links.forEach(link => {
       const active = link.dataset.page === pageId;
       link.classList.toggle("active", active);
