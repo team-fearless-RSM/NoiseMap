@@ -1213,6 +1213,10 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 .floorplan-key-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-left:5px}
 .floorplan-key-dot.is-green{background:#38dc9a}.floorplan-key-dot.is-amber{background:#ffc15c}.floorplan-key-dot.is-red{background:#ff6f79}
 .floorplan-disclaimer{margin:14px 0 16px;color:#a9c3d2;font-size:10px;line-height:1.6}
+.floorplan-floor{margin:18px 0 22px}
+.floorplan-floor-title{margin:0 0 10px;color:#dff8ff;font:700 15px "Space Grotesk",sans-serif;letter-spacing:.4px}
+.floorplan-room.is-unregistered{opacity:.78;border-style:dashed;cursor:default}
+.floorplan-room.is-unregistered:hover{transform:none;box-shadow:none;border-color:rgba(132,181,202,.35)}
 .floorplan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;padding:16px;border:1px solid rgba(111,190,210,.25);border-radius:14px;background:linear-gradient(145deg,rgba(4,19,33,.78),rgba(11,34,52,.86));min-height:112px}
 .floorplan-empty{grid-column:1/-1;margin:0;padding:22px 8px;text-align:center;color:#a9c3d2;font-size:11px}
 .floorplan-room{position:relative;display:flex;flex-direction:column;gap:7px;min-height:132px;padding:14px;text-decoration:none;color:#effaff!important;border:1px solid rgba(132,181,202,.35);border-radius:10px;background:linear-gradient(145deg,#173b53,#0c263d);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
