@@ -511,6 +511,8 @@
     setValue("dashboardDeviceTotal", cachedDevices.length);
     setValue("dashboardRecentDevices", recentlyReporting);
     setValue("dashboardOpenAlerts", openAlerts.length);
+    const setupNotice = document.getElementById("dashboardSetupNotice");
+    if (setupNotice) setupNotice.hidden = cachedLocations.length > 0 || cachedDevices.length > 0 || cachedObservations.length > 0;
 
     const readingsList = document.getElementById("dashboardLatestReadings");
     if (readingsList) {
