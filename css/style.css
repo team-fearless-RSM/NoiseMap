@@ -1184,3 +1184,8 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 .prototype-status-label{flex:0 0 auto;color:#087c72;font-size:9px;font-weight:800;letter-spacing:1.3px;padding-top:3px}
 .prototype-status-banner p{margin:0;color:#365b61;font-size:12px;line-height:1.6}
 @media(max-width:700px){.prototype-status-banner{margin:14px 16px 0;display:block}.prototype-status-label{display:block;margin-bottom:5px}}
+
+
+/* Respect the HTML hidden state even when a section is the current hash target. */
+[hidden]{display:none!important}
+.nav-link:focus-visible{outline:3px solid #75e4d8;outline-offset:3px}
