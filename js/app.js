@@ -51,6 +51,14 @@
   let simulatorSessionId = null;
   let simulatorReadingCount = 0;
   const NM_HEARTBEAT_TIMEOUT_MS = 120000;
+  let observationsConnectionReady = false;
+
+  function setLoadingTimeout(element, loadingText, timeoutMessage, delayMs = 10000) {
+    if (!element) return;
+    window.setTimeout(() => {
+      if (element.textContent.trim() === loadingText) element.textContent = timeoutMessage;
+    }, delayMs);
+  }
 
   function connectVisitorCounter() {
     if (!window.NoiseMap || !window.NoiseMap.configured) return;
@@ -73,6 +81,7 @@
     }
     if (!isEditor || !window.NoiseMap || !window.NoiseMap.configured || !visitorCount) return;
     if (visitorCountStatus) visitorCountStatus.textContent = "Loading visit count…";
+    setLoadingTimeout(visitorCountStatus, "Loading visit count…", "Visit count is taking too long to load. Check your connection.");
     visitorCountUnsubscribe = window.NoiseMap.subscribeVisitorCount(count => {
       visitorCount.textContent = Number(count).toLocaleString("en-IN");
       if (visitorCountStatus) visitorCountStatus.textContent = "All recorded website visits";
@@ -294,7 +303,7 @@
     );
     setText("liveReportingDevices", reportingDevices.length);
     const connection = document.getElementById("liveMonitorConnection");
-    if (connection) connection.textContent = "Firestore updates · " + cachedObservations.length + " saved observation(s) loaded";
+    if (connection && observationsConnectionReady) connection.textContent = "Firestore updates · " + cachedObservations.length + " saved observation(s) loaded";
     const subtitle = document.getElementById("liveChartSubtitle");
     if (subtitle) subtitle.textContent = "Last " + rangeDays + (rangeDays === 1 ? " day" : " days") + " · " + real.length + " non-simulated observation(s) · raw ADC";
     chartWrap.innerHTML = "";
@@ -878,6 +887,7 @@
   function connectLocations() {
     if (!window.NoiseMap || !window.NoiseMap.configured || !locationList) return;
     if (locationStatus) locationStatus.textContent = "Loading locations from Firestore…";
+    setLoadingTimeout(locationStatus, "Loading locations from Firestore…", "Locations could not be confirmed yet. Check your connection or Firestore permissions.");
     if (locationUnsubscribe) locationUnsubscribe();
     locationUnsubscribe = window.NoiseMap.subscribeLocations(locations => {
       cachedLocations = locations;
@@ -1031,6 +1041,7 @@
   function connectAlerts() {
     if (!window.NoiseMap || !window.NoiseMap.configured || !alertList) return;
     if (alertStatusLine) alertStatusLine.textContent = "Loading staffroom alerts…";
+    setLoadingTimeout(alertStatusLine, "Loading staffroom alerts…", "Alerts are taking too long to load. Sign in with an authorised team account or check the connection.");
     if (alertUnsubscribe) alertUnsubscribe();
     alertUnsubscribe = window.NoiseMap.subscribeAlerts(alerts => {
       cachedAlerts = alerts;
@@ -1371,13 +1382,23 @@
 
   function connectObservations() {
     if (!window.NoiseMap || !window.NoiseMap.configured) return;
+    const connection = document.getElementById("liveMonitorConnection");
+    observationsConnectionReady = false;
+    if (connection) connection.textContent = "Connecting to Firestore…";
+    setLoadingTimeout(connection, "Connecting to Firestore…", "Firestore connection timed out. Check your connection and database permissions.");
     observationUnsubscribe = window.NoiseMap.subscribeObservations(items => {
+      observationsConnectionReady = true;
       cachedObservations = items;
       renderObservations(items);
       renderDevices(cachedDevices);
       renderLocationDetailPages();
       renderDashboard();
-    }, error => console.error("Could not load observations:", error));
+    }, error => {
+      console.error("Could not load observations:", error);
+      if (connection) connection.textContent = error.code === "permission-denied"
+        ? "Firestore access denied. Check the observations read rule."
+        : "Could not connect to Firestore. Check your connection and configuration.";
+    });
   }
 
   function renderEndpointTests(items) {
