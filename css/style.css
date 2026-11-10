@@ -1177,3 +1177,10 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 @media(max-width:800px) {
   .future-use-case-grid { grid-template-columns:1fr; }
 }
+
+
+/* Single, site-wide prototype disclosure replaces repeated unfinished-state notices. */
+.prototype-status-banner{margin:18px 40px 0;padding:13px 17px;border:1px solid #c9e9e5;border-left:4px solid var(--teal);border-radius:10px;background:#edf8f6;display:flex;align-items:flex-start;gap:14px}
+.prototype-status-label{flex:0 0 auto;color:#087c72;font-size:9px;font-weight:800;letter-spacing:1.3px;padding-top:3px}
+.prototype-status-banner p{margin:0;color:#365b61;font-size:12px;line-height:1.6}
+@media(max-width:700px){.prototype-status-banner{margin:14px 16px 0;display:block}.prototype-status-label{display:block;margin-bottom:5px}}
