@@ -247,5 +247,10 @@ const NoiseAudio = (() => {
     refreshHint();
   }
 
-  return { init, evaluateReading, resetAll };
+  function resetLocation(locationId) {
+    breachTracker.delete(String(locationId));
+    saveTracker();
+  }
+
+  return { init, evaluateReading, resetAll, resetLocation };
 })();
