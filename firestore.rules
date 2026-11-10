@@ -12,7 +12,7 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/teamMembers/$(request.auth.uid));
     }
 
-    // Publicly viewable project data; only explicitly allowlisted team members can edit.
+    // Public monitoring data. Only allowlisted team members can edit.
     match /locations/{documentId} {
       allow read: if true;
       allow create, update, delete: if isTeamMember();
@@ -28,24 +28,20 @@ service cloud.firestore {
       allow create, update, delete: if isTeamMember();
     }
 
-    // Apps Script endpoint verification records are separate from real sensor observations.
-    // The Apps Script OAuth service writes these; browsers can only read them as team members.
+    // Private integration test records.
     match /endpoint_test_observations/{documentId} {
       allow read: if isTeamMember();
       allow write: if false;
     }
 
+    // Staff actions and classroom alerts may contain sensitive classroom details.
+    // Restrict all access to authenticated, allowlisted team members.
     match /actions/{documentId} {
-      allow read: if true;
-      allow create, update, delete: if isTeamMember();
+      allow read, create, update, delete: if isTeamMember();
     }
 
-    // Staffroom alerts are readable on the public dashboard; only team members can manage them.
     match /alerts/{alertId} {
-      allow read: if true;
-      allow create, update, delete: if isTeamMember();
-   
-}
+      allow read, create, update, delete: if isTeamMember();
     }
 
     // Team membership documents are managed manually in Firebase Console.
@@ -54,6 +50,7 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Deny access to every collection not explicitly listed above.
     match /{document=**} {
       allow read, write: if false;
     }
