@@ -35,9 +35,7 @@ const unsigned long BUZZER_PULSE_MS = 120;
 
 SoftwareSerial bluetooth(HC05_RX_PIN, HC05_TX_PIN);
 unsigned long lastSampleAt = 0;
-unsigned long highSince = 0;
 unsigned long lastWarningAt = 0;
-unsigned long lastBuzzerAt = 0;
 byte warningCount = 0;
 bool alertSent = false;
 bool wasNoisy = false;
@@ -95,7 +93,6 @@ void loop() {
 
   if (noisy) {
     if (!wasNoisy) {
-      highSince = now;
       lastWarningAt = now;
       episodeNumber++;
       episodeId = String(DEVICE_ID) + "_" + String(episodeNumber);
@@ -106,13 +103,9 @@ void loop() {
     if (warningCount < 3 && now - lastWarningAt >= WARNING_INTERVAL_MS) {
       warningCount++;
       lastWarningAt = now;
+      tone(BUZZER_PIN, 2000, BUZZER_PULSE_MS);
     }
 
-    digitalWrite(BUZZER_PIN, (now - lastBuzzerAt >= BUZZER_PULSE_MS) ? HIGH : LOW);
-    if (now - lastBuzzerAt >= BUZZER_PULSE_MS * 2) {
-      lastBuzzerAt = now;
-      digitalWrite(BUZZER_PIN, LOW);
-    }
 
     if (warningCount >= 3 && !alertSent) {
       sendMessage(rawAdc, "NOISE", "staffroom_alert");
@@ -129,7 +122,6 @@ void loop() {
       warningCount = 0;
       sendMessage(rawAdc, "NORMAL", "observation");
     }
-    highSince = 0;
     alertSent = false;
   }
 
