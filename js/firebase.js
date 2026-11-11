@@ -47,8 +47,18 @@ window.NOISEMAP_FIREBASE_CONFIG = {
   if (!firebase.apps.length) firebase.initializeApp(config);
   const auth = firebase.auth();
   const db = firebase.firestore();
+  // Enable the Firestore offline cache before any app listeners are attached.
+  // The SDK queues supported writes while offline and synchronises them on reconnect.
+  const persistenceReady = db.enablePersistence({ synchronizeTabs: true }).then(() => {
+    console.info("NoiseMap: Firestore offline persistence enabled.");
+    return true;
+  }).catch(error => {
+    console.warn("NoiseMap: Firestore persistence unavailable:", error.code || error.message);
+    return false;
+  });
 
   window.NoiseMap = {
+    persistenceReady,
     configured: true, auth, db,
     signIn: (email, password) => auth.signInWithEmailAndPassword(email.trim(), password),
     signOut: () => auth.signOut(),
@@ -160,6 +170,10 @@ window.NOISEMAP_FIREBASE_CONFIG = {
     }),
     subscribeDevices: (onData, onError) => db.collection("devices").orderBy("createdAt", "desc")
       .onSnapshot(snapshot => onData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))), onError),
+    setDeviceCalibration: (deviceId, calibration) => {
+      if (!auth.currentUser) throw new Error("Sign in with an authorised team account first.");
+      return db.collection("devices").doc(deviceId).update({ calibration });
+    },
     deleteDevice: deviceId => {
       if (!auth.currentUser) throw new Error("Sign in with an authorised team account first.");
       return db.collection("devices").doc(deviceId).delete();
