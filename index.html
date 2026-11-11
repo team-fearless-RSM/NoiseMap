@@ -304,6 +304,17 @@
       <section class="page-content secondary-page" id="history">
         <div class="eyebrow">WORKSPACE</div><h1>Historical Data</h1>
         <p class="intro">View stored raw sensor observations by location and device. Raw ADC values are not calibrated dB/dB(A).</p>
+        <div class="history-controls-row panel" aria-label="Historical data export controls">
+          <div class="history-filter-group">
+            <div><label for="historyLocationFilter">Location</label><select id="historyLocationFilter"><option value="all">All locations</option></select></div>
+            <div><label for="historyRangeFilter">Date range</label><select id="historyRangeFilter"><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All loaded records</option></select></div>
+          </div>
+          <div class="history-export-actions">
+            <button class="export-csv-button" id="exportHistoryCsvBtn" type="button"><span aria-hidden="true">⤓</span> Export to CSV</button>
+            <span class="export-status" id="exportStatus" role="status" aria-live="polite"></span>
+          </div>
+          <p class="history-export-note">Exports matching observations from the records currently loaded in NoiseMap (up to 300 latest records). Raw ADC is not dB/dB(A).</p>
+        </div>
         <form class="panel location-form record-form" id="observationForm" hidden>
           <div class="panel-heading"><div><h2>Add an observation</h2><p>Use this for a manually recorded raw ADC reading or a verified test record.</p></div></div>
           <label for="observationLocation">Location</label><select id="observationLocation"><option value="">Select a location</option></select>
@@ -374,6 +385,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="js/firebase.js"></script>
   <script src="js/audio-alerts.js"></script>
+  <script src="js/export-csv.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
