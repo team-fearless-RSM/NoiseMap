@@ -1045,6 +1045,7 @@
     if (locationUnsubscribe) locationUnsubscribe();
     locationUnsubscribe = window.NoiseMap.subscribeLocations(locations => {
       cachedLocations = locations;
+      populateHistoryLocationFilter(locations);
       updateAudioMonitorFromObservations(cachedObservations);
       populateAlertLocations(locations);
       populateLiveMonitoringLocations(locations);
@@ -1483,6 +1484,15 @@
     populateDeviceSelects(devices);
   }
 
+  function populateHistoryLocationFilter(locations) {
+    const select = document.getElementById("historyLocationFilter");
+    if (!select) return;
+    const selected = select.value || "all";
+    select.replaceChildren(new Option("All locations", "all"));
+    locations.forEach(location => select.add(new Option(location.name || location.id, location.id)));
+    select.value = locations.some(location => location.id === selected) ? selected : "all";
+  }
+
   function renderObservations(observations) {
     const list = document.getElementById("observationList");
     const empty = document.getElementById("observationEmpty");
@@ -1816,6 +1826,26 @@
       } catch (error) {
         window.alert("Could not sign out. Please try again.");
       }
+    });
+  }
+
+  const historyExportButton = document.getElementById("exportHistoryCsvBtn");
+  if (historyExportButton) {
+    historyExportButton.addEventListener("click", () => {
+      const locationFilter = document.getElementById("historyLocationFilter");
+      const rangeFilter = document.getElementById("historyRangeFilter");
+      if (!window.NoiseExporter) {
+        const status = document.getElementById("exportStatus");
+        if (status) status.textContent = "CSV export module is unavailable. Refresh the page.";
+        return;
+      }
+      window.NoiseExporter.exportDataset(
+        cachedObservations,
+        cachedDevices,
+        cachedLocations,
+        locationFilter ? locationFilter.value : "all",
+        rangeFilter ? rangeFilter.value : "7"
+      );
     });
   }
 
