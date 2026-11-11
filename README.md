@@ -100,19 +100,11 @@ A real authenticated Uno/HC-05 incident creates an `alerts/{alertId}` document w
 
 For the initial test, the sender is Resend's shared test sender (`NoiseMap Alerts <onboarding@resend.dev>`). Resend's test sender is restricted to recipient addresses verified in your Resend account. Verify the destination address there first. For ongoing production use, verify a domain you control in Resend and change `ALERT_EMAIL_FROM` in `functions/index.js` to an address on that domain.
 
-Create a Resend account and an API key, then from the repository root run:
+Create a Resend account and an API key. Store the key as a GitHub repository secret named `RESEND_API_KEY` (Settings → Secrets and variables → Actions → New repository secret). Do not paste the key into chat, source code, the website, or a committed file.
 
-```powershell
-firebase functions:secrets:set RESEND_API_KEY
-```
+The browser-based GitHub Actions workflow creates a temporary `functions/.env.noisemap-ead56` file from that GitHub secret during deployment and removes it when the deployment step finishes. The Functions code reads the value from `process.env.RESEND_API_KEY`; Firebase Secret Manager is not used. The key is therefore deployed as a regular runtime environment variable, **not** as a Secret Manager-backed secret. Restrict access to the Firebase/Google Cloud project and GitHub repository accordingly. Do not print the key in workflow logs.
 
-Paste the API key into the terminal prompt when asked. **Do not paste it into chat, source code, GitHub, or the website.** Then deploy the Functions:
-
-```powershell
-firebase deploy --only functions
-```
-
-The API key is stored as a Firebase Secret and is only exposed to the email-trigger function. The email is sent only for a hardware alert with three warnings; Resend's idempotency key prevents duplicate delivery if the trigger retries. The email reports the raw ADC reading and configured ADC threshold, not calibrated dB(A).
+Run **Deploy NoiseMap Firebase Functions** from the repository's Actions tab after saving the secret. This removes the Secret Manager setup step, but Firebase Functions deployment may still require the project to use the Blaze billing plan. The email is sent only for a hardware alert with three warnings; Resend's idempotency key prevents duplicate delivery if the trigger retries. The email reports the raw ADC reading and configured ADC threshold, not calibrated dB(A).
 
 ### 5. Staffroom browser audio alerts
 
