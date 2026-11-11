@@ -82,8 +82,8 @@ def post_with_retries(endpoint, payload):
             last_error = RuntimeError(
                 f"Apps Script rejected upload ({response.status_code}): {result}"
             )
-            if response.status_code < 500 and response.status_code != 429:
-                raise last_error
+            # Apps Script ContentService returns HTTP 200 even when the JSON body
+            # reports an application error, so retry the response body as well.
         except requests.RequestException as exc:
             last_error = exc
         if attempt < 2:
