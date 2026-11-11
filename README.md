@@ -1,124 +1,115 @@
 # NoiseMap
 
-**A Team Fearless project for NRL Changemakers**
+**Team Fearless · NRL Changemakers**
 
-NoiseMap is a prototype for recording sound observations at selected locations, understanding patterns over time, and transparently tracking follow-up actions.
+NoiseMap is a prototype for recording sound-sensor observations at selected locations, viewing patterns over time, and tracking follow-up actions. The current hardware path is **Arduino Uno + LM393 4-pin sound sensor + HC-05 Bluetooth**, with a paired-computer bridge forwarding readings to Firebase.
 
-## Current status
+## Current implementation
 
-- [x] Responsive dashboard prototype
-- [x] Firebase Web SDK bootstrap and reusable Firestore write helpers
-- [x] Firestore security rules (authenticated accounts only)
-- [x] Firebase CLI configuration and indexes manifest
-- [ ] Firebase project creation and Web App configuration
-- [ ] Enable Email/Password Authentication and provision team accounts
-- [ ] Create Firestore database and deploy security rules
-- [ ] Connect dashboard screens to Firestore read queries
-- [ ] Arduino-to-web data transfer and device authentication
-- [ ] Calibrated sound measurement method
+- Firebase web client and Firestore-backed dashboard.
+- Device registration in the `devices` collection and location assignment.
+- Authenticated HTTPS ingestion function: `ingestDeviceData`.
+- HC-05 serial-to-cloud bridge: `bridge/serial_to_cloud.py`.
+- Arduino firmware starter sketch: `hardware/arduino_uno_hc05.ino`.
+- Local device-token provisioning utility: `functions/scripts/provision-device.js`.
+- Browser Staffroom audio alerts for fresh, consecutive, authenticated Uno/HC-05 readings.
+- Simulator records are marked separately and excluded from live sensor alerts.
 
-**Important:** The dashboard still displays illustrative sample data. Firebase is not active until a real project configuration is added. No live sensor readings are connected. Raw LM393 analogue values or comparator outputs must not be presented as dB or dB(A).
+**Not yet verified on physical hardware:** the Uno/HC-05 firmware, Bluetooth COM-port bridge, deployed ingestion function, and a real end-to-end upload. A GitHub commit does not deploy Firebase Functions.
 
-## Staffroom browser audio alerts
+## Measurement integrity
 
-The Staffroom Alerts page includes a browser-based audio monitor. An authorised team member can enable the sound toggle, test the synthesized Web Audio chime, and select a raw ADC trigger level (default 700) and sustained duration (default 5 seconds).
+The LM393 module's analogue output is a raw ADC signal (0–1023), not calibrated sound pressure. NoiseMap must not label these values as dB/dB(A), claim source identification (for example, traffic versus voices), or claim regulatory exceedance without suitable calibrated instrumentation and a documented method. The firmware threshold is a tunable raw-ADC threshold only.
 
-- The monitor evaluates only non-simulated observations whose source is `esp8266`, and requires the associated device heartbeat to be online.
-- A breach is recorded only after consecutive readings remain at or above the selected threshold for the selected duration. Readings more than 15 seconds apart reset the sustained interval because continuity cannot be established.
-- Each browser-detected incident is saved to the existing staff-only `alerts` collection with an idempotent incident ID, threshold, duration, device, and raw ADC reading.
-- The sound preference is stored in that browser. The browser page must remain open, the user must be signed in as an authorised team member for incident logging, and browser audio must be enabled by a user gesture.
-- Simulated and manually entered observations are excluded. Hardware firmware alerts continue to use the existing authenticated `staffroom_alert` event flow.
+## Data path
 
-**Measurement limitation:** This feature uses raw ADC thresholds only. It does not measure calibrated dB/dB(A), identify a sound source, or establish a legal noise violation. The 15-second sample-gap rule is a software safeguard; confirm that the device firmware sends readings frequently enough before relying on the monitor in a live classroom.
+1. LM393 AO connects to Arduino A0.
+2. Arduino sends newline-delimited JSON over HC-05 Bluetooth serial.
+3. A paired Windows/Linux computer runs `bridge/serial_to_cloud.py` and reads the HC-05 outgoing COM port.
+4. The bridge sends HTTPS requests with a bearer device token to `ingestDeviceData`.
+5. The function validates the token hash, registered device, assigned Firestore location, and payload before saving observations and updating the device heartbeat.
+6. The dashboard reads Firestore. The Staffroom audio monitor requires an authorised team session and a page that remains open.
 
+The Uno does not connect directly to the website. The paired computer and bridge must remain running for uploads.
 
-## GitHub Pages deployment
+## Setup and deployment
 
-The repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`. When changes are pushed to `main`, it packages only the static website files (`index.html`, `css/style.css`, and the browser scripts in `js/`) and deploys them to GitHub Pages. It does not deploy Firebase Functions or Firestore rules.
+### 1. Firebase Functions
 
-**One-time repository setting:** Open **Settings → Pages → Build and deployment** and set **Source** to **GitHub Actions**. After this is selected, merges to `main` trigger deployment automatically. The deployment URL and status appear under the workflow run and in **Settings → Pages**.
+From the repository root, select the correct Firebase project if it is not already selected. Then:
 
-GitHub Pages hosts the front-end only. Firebase Authentication and Firestore will remain unavailable until the Firebase Web App configuration is added and the Firebase services/rules are deployed separately.
-
-
-## Repository structure
-
-```
-NoiseMap/
-├── index.html
-├── css/style.css
-├── js/app.js
-├── js/firebase.js
-├── firestore.rules
-├── firestore.indexes.json
-├── firebase.json
-└── README.md
+```powershell
+cd functions
+npm install
+cd ..
+firebase deploy --only functions
 ```
 
-## 1. Create and configure Firebase (one-time account-owner step)
+Use the exact `ingestDeviceData` HTTPS URL printed by the Firebase CLI after deployment. Functions deployment is separate from GitHub Pages.
 
-1. Open https://console.firebase.google.com/ and create a project named **NoiseMap** (or use an existing project dedicated to this prototype).
-2. In Project settings, add a **Web app** named `NoiseMap Web`.
-3. Copy the Firebase Web App configuration values.
-4. Open `js/firebase.js` in this repository. Replace the `window.NOISEMAP_FIREBASE_CONFIG` placeholder values with the values from the Firebase Console. Do not add a service-account JSON file or Admin SDK private key.
-5. In **Build → Authentication → Get started → Sign-in method**, enable **Email/Password**.
-6. In **Authentication → Users**, add the individual team accounts. This prototype intentionally has no public sign-up form: only accounts you create in the Firebase Console can sign in.
-7. In **Build → Firestore Database**, create a database. Choose a region close to your users and keep the project in production mode.
-8. From the repository root, install Firebase CLI, sign in with the project owner's Google account, select the project, then deploy the rules:
-   ```bash
-   npm install -g firebase-tools
-   firebase login
-   firebase use --add
-   firebase deploy --only firestore:rules,firestore:indexes
-   ```
-9. Confirm the rules deployment in Firebase Console → Firestore → Rules.
+### 2. Provision a device credential
 
-## 2. Firestore security
+The device must already be registered in the NoiseMap dashboard and assigned to a Firestore location. The `deviceId` in the website must exactly match the ID in the Arduino sketch.
 
-`firestore.rules` denies access by default and allows read/write only when a user is authenticated. Because there is no public registration, the project owner controls which accounts are provisioned. All provisioned users currently have equal data permissions; role-based permissions and audit logging should be added before wider deployment or sensitive use.
+Install Google Cloud CLI and authenticate locally with an account that has permission to write Firestore:
 
-Do not use open test rules such as `allow read, write: if true`.
+```powershell
+gcloud auth application-default login
+cd functions
+npm install
+node .\scripts\provision-device.js NM-CLASS-01
+```
 
-## 3. Data model
+Replace `NM-CLASS-01` with the registered device ID. The script stores only a SHA-256 token hash in `deviceSecrets/{deviceId}` and prints the raw token once after saving. Copy it directly into the bridge computer's `NOISEMAP_DEVICE_TOKEN` environment variable. Do not put the token in Arduino firmware, browser code, GitHub, screenshots, or chat.
 
-The client helpers in `js/firebase.js` prepare these collections:
+To invalidate an existing token and create a replacement, run the same command with `--rotate`. The old token stops working immediately.
 
-- `locations`: name, description, status, createdAt, createdBy.
-- `devices`: deviceId, locationId, hardware, connectionStatus, createdAt, createdBy.
-- `observations`: deviceId, locationId, timestamp, rawValue, measurementType, unit, calibration, createdAt, createdBy.
-- `actions`: observationId, description, actionDate, responsible, responseStatus, evidenceUrl, createdAt, createdBy.
+### 3. Arduino and sensor
 
-The observation helper defaults to `measurementType: "raw_adc"` and `unit: "ADC (0-1023)"`. Do not store or display LM393 readings as dB/dB(A) without suitable calibrated measurement hardware and a documented calibration method.
+Open `hardware/arduino_uno_hc05.ino` in Arduino IDE. Replace:
+- `DEVICE_ID` with the exact registered device ID.
+- `LOCATION_ID` with the Firestore document ID of the assigned location.
 
-## 4. Client helper usage
+Wiring is documented at the top of the sketch. Important: Arduino D11 is 5V logic; connect it to HC-05 RX through a resistor voltage divider or level shifter. Do not connect Arduino TX directly to HC-05 RX. The sketch uses SoftwareSerial at 9600 baud for HC-05 and USB Serial at 9600 for diagnostics.
 
-After Firebase is configured, the page exposes `window.NoiseMap`:
+Tune `NOISE_THRESHOLD_ADC` from observed raw readings in the intended environment. It is not a dB threshold. The sketch counts one warning after each five-second sustained high interval and sends a staffroom alert at the third warning.
 
-- `NoiseMap.signIn(email, password)`
-- `NoiseMap.signOut()`
-- `NoiseMap.onAuthStateChanged(callback)`
-- `NoiseMap.addLocation(data)`
-- `NoiseMap.addDevice(data)`
-- `NoiseMap.addObservation(data)`
-- `NoiseMap.addAction(data)`
+### 4. Run the computer bridge (Windows PowerShell)
 
-These helpers are a foundation, not a finished dashboard integration. The current page does not yet render Firestore records or include a login form. Do not treat the demo chart/cards as database content.
+Pair the HC-05 in Windows Bluetooth settings and identify its **outgoing** Bluetooth COM port in Device Manager. Install dependencies:
 
-## 5. Publish
+```powershell
+py -m pip install pyserial requests
+```
 
-GitHub Pages can host the static site:
+Set the values for the paired computer session:
 
-1. Repository **Settings → Pages**.
-2. Under **Build and deployment**, select **Deploy from a branch**.
-3. Choose branch **main** and folder **/(root)**, then save.
-4. Wait for the Pages URL to appear.
+```powershell
+$env:NOISEMAP_COM_PORT = "COM7"
+$env:NOISEMAP_BAUD = "9600"
+$env:NOISEMAP_INGEST_URL = "<deployed ingestDeviceData HTTPS URL>"
+$env:NOISEMAP_DEVICE_TOKEN = "<token printed by the provisioning script>"
+py .\bridge\serial_to_cloud.py
+```
 
-The Firebase Web App config is client-side configuration and will be visible to site visitors. Firestore rules—not secrecy of the config—must protect the data.
+Replace COM7 and both placeholders with the actual values. Keep the bridge running while collecting data. Never commit the token or a local environment file.
 
-## Hardware and measurement integrity
+### 5. Staffroom browser audio alerts
 
-The current hardware concept is Arduino UNO + LM393 sound sensor + buzzer + HC-05 Bluetooth. Hardware data transfer is not implemented here yet. A raw ADC number is a sensor signal, not a sound-pressure level. Do not claim dB/dB(A), exceedance, or regulatory compliance without appropriate calibrated instrumentation and a documented measurement process.
+An authorised team member must sign in, open Staffroom Alerts, enable the audio toggle with a user gesture, and keep that page open. The monitor uses the configured raw-ADC threshold and sustained duration. It only evaluates fresh, consecutive, online readings from source `arduino_uno_hc05`; simulated records are excluded. Browser audio cannot play when the page is closed or suspended.
 
-## Team
+## Firestore collections
 
-**Team Fearless** · NRL Changemakers
+- `locations`: classroom/site locations.
+- `devices`: registered device ID, assigned location, hardware, heartbeat and connection status.
+- `deviceSecrets`: private server-side token hashes; Firestore client rules deny access.
+- `observations`: timestamped raw ADC readings and source metadata.
+- `alerts`: staffroom alerts and browser-detected sustained-threshold incidents.
+- `actions`: follow-up/action-tracking records.
+- `teamMembers`: allowlisted team user IDs.
+
+Never weaken Firestore rules to make device ingestion work. The HTTPS function uses Firebase Admin SDK and validates device credentials independently of browser authentication.
+
+## GitHub Pages
+
+The repository's Pages workflow deploys the static website only. It does not deploy Firebase Functions or Firestore rules. Confirm the workflow run and Pages settings separately after pushing changes.
