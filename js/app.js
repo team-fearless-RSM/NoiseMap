@@ -781,11 +781,18 @@
         const rawValue = record && (record.rawValue ?? record.rawAdc ?? record.raw_adc);
         const raw = rawValue === undefined || rawValue === null ? NaN : Number(rawValue);
         const valid = Number.isFinite(raw) && raw >= 0 && raw <= 1023;
-        const level = !valid ? "no-reading" : raw < 500 ? "is-green" : raw <= 750 ? "is-amber" : "is-red";
+        const roomDevices = location ? cachedDevices.filter(device => device.locationId === location.id) : [];
+        const onlineCount = roomDevices.filter(device => getDeviceHeartbeatState(device).online).length;
+        const plannedCount = roomDevices.filter(device => getDeviceHeartbeatState(device).label === "Planned").length;
+        const connectionState = !location || !roomDevices.length ? "no-sensor"
+          : onlineCount ? "online" : plannedCount === roomDevices.length ? "planned" : "offline";
+        const level = !location ? "no-reading" : connectionState === "online" ? "is-green"
+          : connectionState === "planned" ? "is-planned" : "no-reading";
         card.className = "floorplan-room " + level + (location ? "" : " is-unregistered");
         if (location) {
           card.href = "#location-" + encodeURIComponent(location.id);
-          card.setAttribute("aria-label", "Room " + roomNumber + (valid ? ", raw ADC " + raw : ", no non-simulated reading"));
+          card.setAttribute("aria-label", "Room " + roomNumber + ", sensor " + connectionState +
+            (valid ? ", latest raw ADC " + raw : ", no non-simulated reading"));
         } else {
           card.setAttribute("aria-label", "Room " + roomNumber + ", no sensor location registered");
         }
@@ -800,7 +807,10 @@
         reading.textContent = valid ? raw + " ADC" : !location ? "No sensor registered" : latest.test ? "Test data only" : "No live reading";
         const status = document.createElement("span");
         status.className = "floorplan-room-status";
-        status.textContent = valid ? (raw < 500 ? "LOW ACTIVITY" : raw <= 750 ? "ELEVATED" : "HIGH ACTIVITY") : !location ? "NOT CONNECTED" : latest.test ? "SIMULATED" : "AWAITING DATA";
+        status.textContent = !location || !roomDevices.length ? "NO SENSOR"
+          : connectionState === "online" ? "ONLINE · " + onlineCount + "/" + roomDevices.length
+          : connectionState === "planned" ? "PLANNED"
+          : "OFFLINE";
         card.append(number, name, reading, status);
         if (record) {
           const time = document.createElement("small");
@@ -884,7 +894,7 @@
     }).sort((a,b) => (locationReadingDate({timestamp:b.createdAt})?.getTime() || 0) - (locationReadingDate({timestamp:a.createdAt})?.getTime() || 0));
     const latestByDevice = devices.map(device => ({
       device,
-      latest: observations.find(item => item.deviceId === device.id) || null
+      latest: observations.find(item => observationMatchesDevice(item, device)) || null
     }));
     const latestObservation = observations[0] || null;
     const onlineDeviceCount = devices.filter(device => getDeviceHeartbeatState(device).online).length;
@@ -929,13 +939,22 @@
         const latest = latestByDevice.find(item => item.device.id === device.id)?.latest;
         const date = locationReadingDate(latest);
         const heartbeat = getDeviceHeartbeatState(device);
-        status.className = "device-monitor-status " + (heartbeat.online ? "is-online" : "is-offline");
+        status.className = "device-monitor-status " + (heartbeat.online ? "is-online" : heartbeat.label === "Planned" ? "is-planned" : "is-offline");
         status.textContent = heartbeat.label;
         row.append(name,status);
         const meta = document.createElement("small");
         const latestRaw = latest ? (latest.rawValue ?? latest.rawAdc ?? latest.raw_adc) : null;
         meta.textContent = (device.hardware || "Hardware not specified") + " · " + heartbeat.detail + " · Latest reading: " + (latestRaw === null || latestRaw === undefined ? "Not recorded" : latestRaw + " ADC") + " · " + (latest ? formatAlertTime(latest.timestamp || latest.createdAt) : "No timestamp");
-        row.appendChild(meta); devicePanel.appendChild(row);
+        row.appendChild(meta);
+        if (canManageRecords) {
+          const calibrate = document.createElement("button");
+          calibrate.type = "button";
+          calibrate.className = "calibration-open-button";
+          calibrate.textContent = device.calibration ? "Edit calibration" : "Set 2-point calibration";
+          calibrate.addEventListener("click", () => openCalibrationDialog(device));
+          row.appendChild(calibrate);
+        }
+        devicePanel.appendChild(row);
       });
     }
     section.appendChild(devicePanel);
@@ -1467,14 +1486,6 @@
         hardware.className = "device-monitor-meta";
         hardware.textContent = "Hardware: " + (device.hardware || "Not specified");
         card.append(top, reading, unit, locationText, lastSeen, heartbeatMeta, hardware);
-        if (canManageRecords) {
-          const calibrate = document.createElement("button");
-          calibrate.type = "button";
-          calibrate.className = "calibration-open-button";
-          calibrate.textContent = calibration ? "Edit calibration" : "Set 2-point calibration";
-          calibrate.addEventListener("click", () => openCalibrationDialog(device));
-          card.appendChild(calibrate);
-        }
         monitorGrid.appendChild(card);
       }
 
@@ -1927,6 +1938,52 @@
       }
     });
   }
+
+  const calibrationDialog = document.getElementById("calibrationDialog");
+  const calibrationForm = document.getElementById("calibrationForm");
+  const calibrationCancel = document.getElementById("calibrationCancel");
+  const calibrationClear = document.getElementById("calibrationClear");
+  if (calibrationCancel && calibrationDialog) calibrationCancel.addEventListener("click", () => calibrationDialog.close());
+  if (calibrationClear && calibrationDialog) calibrationClear.addEventListener("click", async () => {
+    if (!canManageRecords) return;
+    const id = document.getElementById("calibrationDeviceDocId").value;
+    const status = document.getElementById("calibrationStatus");
+    try {
+      await window.NoiseMap.setDeviceCalibration(id, window.firebase.firestore.FieldValue.delete());
+      calibrationDialog.close();
+      renderLocationDetailPages();
+    } catch (error) { status.textContent = error.message || "Could not clear calibration."; }
+  });
+  if (calibrationForm && calibrationDialog) calibrationForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!canManageRecords) return;
+    const read = id => Number(document.getElementById(id).value);
+    const calibration = {
+      method: "log_adc_two_point",
+      adc1: read("calibrationAdc1"), db1: read("calibrationDb1"),
+      adc2: read("calibrationAdc2"), db2: read("calibrationDb2"),
+      referenceInstrument: document.getElementById("calibrationReference").value.trim(),
+      calibratedAt: new Date().toISOString(),
+      calibratedBy: currentUser ? currentUser.uid : null,
+      unit: "experimental dB SPL estimate",
+      status: "unverified"
+    };
+    const status = document.getElementById("calibrationStatus");
+    if (![calibration.adc1, calibration.adc2].every(v => Number.isInteger(v) && v >= 1 && v <= 1023) ||
+        ![calibration.db1, calibration.db2].every(v => Number.isFinite(v) && v >= 0 && v <= 140) ||
+        calibration.adc1 === calibration.adc2 || calibration.db1 === calibration.db2 || !calibration.referenceInstrument) {
+      status.textContent = "Enter two different ADC points, two different reference dB SPL values, and the reference meter.";
+      return;
+    }
+    calibration.slope = (calibration.db2 - calibration.db1) / (Math.log(calibration.adc2) - Math.log(calibration.adc1));
+    calibration.offset = calibration.db1 - calibration.slope * Math.log(calibration.adc1);
+    try {
+      await window.NoiseMap.setDeviceCalibration(document.getElementById("calibrationDeviceDocId").value, calibration);
+      calibrationDialog.close();
+      renderLocationDetailPages();
+      renderDevices(cachedDevices);
+    } catch (error) { status.textContent = error.message || "Could not save calibration."; }
+  });
 
   const historyExportButton = document.getElementById("exportHistoryCsvBtn");
   if (historyExportButton) {
