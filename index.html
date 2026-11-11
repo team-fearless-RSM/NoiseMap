@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#102a43">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/noisemap.svg" type="image/svg+xml">
   <meta name="description" content="NoiseMap — a community noise observation and action-tracking dashboard by Team Fearless.">
   <title>NoiseMap | Team Fearless</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -253,10 +255,10 @@
             </div>
           </div>
           <p class="audio-monitor-status" id="audioMonitorStatus" role="status" aria-live="polite">Audio alerts are off until enabled. The browser page must remain open to monitor.</p>
-          <p class="audio-monitor-note">Uses raw ADC values, not calibrated dB/dB(A). Only authenticated ESP8266 readings are considered; simulated and manual test data are excluded. Consecutive readings must arrive no more than 15 seconds apart. A browser chime requires this page to remain open and audio to be enabled.</p>
+          <p class="audio-monitor-note">Uses raw ADC values, not calibrated dB/dB(A). Only authenticated Arduino Uno + HC-05 readings are considered; simulated and manual test data are excluded. Consecutive readings must arrive no more than 15 seconds apart. A browser chime requires this page to remain open and audio to be enabled.</p>
         </section>
         <div class="alert-list" id="staffroomAlertList" aria-live="polite"></div>
-        <div class="panel empty-panel" id="alertsEmpty"><span class="empty-icon">✓</span><h2>No classroom alerts</h2><p>Hardware alerts appear after authenticated firmware submits a valid staffroom_alert event. Browser threshold incidents are saved here when an authorised team member is signed in and consecutive live ESP8266 readings remain above the selected raw ADC threshold.</p></div>
+        <div class="panel empty-panel" id="alertsEmpty"><span class="empty-icon">✓</span><h2>No classroom alerts</h2><p>Hardware alerts appear after authenticated firmware submits a valid staffroom_alert event. Browser threshold incidents are saved here when an authorised team member is signed in and consecutive live Arduino Uno + HC-05 readings remain above the selected raw ADC threshold.</p></div>
         <p class="alert-footnote">Test alerts are clearly marked. Only authorised team members can manage classroom alerts.</p>
       </section>
       <section class="page-content secondary-page" id="devices">
@@ -270,6 +272,7 @@
             <article class="device-monitor-stat"><span>Offline devices</span><strong id="deviceWaiting">0</strong></article>
           </div>
           <div class="device-monitor-grid" id="deviceMonitorGrid" aria-live="polite"></div>
+          <p class="device-monitor-footnote">Experimental calibration is an estimate only. The LM393 module is not a certified sound-level meter; do not report these values as dB(A) or regulatory measurements.</p>
           <p class="device-monitor-footnote" id="deviceMonitorNote">Waiting for registered devices and saved observations. Raw ADC values are not decibels.</p>
         </section>
         <section class="panel sensor-simulator" id="sensorSimulator" hidden aria-label="Sensor simulator">
@@ -299,11 +302,30 @@
           <button class="location-submit" id="deviceSubmit" type="submit">Add device</button><p class="location-form-message" id="deviceFormMessage" role="status"></p>
         </form>
         <div class="firestore-location-list" id="deviceList" aria-live="polite"></div>
+        <dialog class="calibration-dialog" id="calibrationDialog" aria-labelledby="calibrationTitle">
+          <form id="calibrationForm" class="calibration-form">
+            <div class="panel-heading"><div><h2 id="calibrationTitle">Two-point calibration</h2><p id="calibrationDeviceLabel">Device calibration</p></div><button class="calibration-close" id="calibrationCancel" type="button" aria-label="Close">×</button></div>
+            <input id="calibrationDeviceDocId" type="hidden">
+            <p class="calibration-warning">Use readings taken at the same time from a reference sound-level meter. This creates an experimental dB SPL estimate only—not dB(A), a certified measurement, or evidence of WHO compliance.</p>
+            <div class="calibration-points">
+              <fieldset><legend>Reference point 1</legend><label for="calibrationAdc1">Sensor ADC (1–1023)</label><input id="calibrationAdc1" type="number" min="1" max="1023" required><label for="calibrationDb1">Reference meter dB SPL</label><input id="calibrationDb1" type="number" min="0" max="140" step="0.1" required></fieldset>
+              <fieldset><legend>Reference point 2</legend><label for="calibrationAdc2">Sensor ADC (1–1023)</label><input id="calibrationAdc2" type="number" min="1" max="1023" required><label for="calibrationDb2">Reference meter dB SPL</label><input id="calibrationDb2" type="number" min="0" max="140" step="0.1" required></fieldset>
+            </div>
+            <label for="calibrationReference">Reference instrument / model</label><input id="calibrationReference" maxlength="120" placeholder="e.g. calibrated sound-level meter" required>
+            <p class="calibration-status" id="calibrationStatus" role="status" aria-live="polite"></p>
+            <div class="calibration-actions"><button class="location-submit" id="calibrationSave" type="submit">Save calibration</button><button class="calibration-secondary" id="calibrationClear" type="button">Clear calibration</button></div>
+          </form>
+        </dialog>
         <div class="panel empty-panel" id="deviceEmpty"><span class="empty-icon">▣</span><h2>No device records yet</h2><p>Registered sensor units will appear here after a team member adds them.</p></div>
       </section>
       <section class="page-content secondary-page" id="history">
         <div class="eyebrow">WORKSPACE</div><h1>Historical Data</h1>
         <p class="intro">View stored raw sensor observations by location and device. Raw ADC values are not calibrated dB/dB(A).</p>
+        <section class="panel exposure-panel" aria-labelledby="exposureTitle">
+          <div class="panel-heading"><div><h2 id="exposureTitle">Rolling 45-minute sound exposure estimate</h2><p>Energy-weighted estimate from calibrated physical sensor readings only</p></div><span class="exposure-tag">EXPERIMENTAL</span></div>
+          <div id="exposureEstimateList" class="exposure-estimate-list" aria-live="polite"><p class="dashboard-empty-text">Add a two-point experimental calibration to a device to calculate an estimate.</p></div>
+          <p class="exposure-disclaimer">Uses a 45-minute rolling window and ignores sample gaps longer than 15 seconds. At least 80% time coverage is required. This is not a validated daily Leq or dB(A) assessment; no WHO compliance badge is issued.</p>
+        </section>
         <div class="history-controls-row panel" aria-label="Historical data export controls">
           <div class="history-filter-group">
             <div><label for="historyLocationFilter">Location</label><select id="historyLocationFilter"><option value="all">All locations</option></select></div>
