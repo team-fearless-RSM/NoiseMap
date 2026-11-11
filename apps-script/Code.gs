@@ -50,7 +50,7 @@ function doPost(e) {
 
     let emailStatus = "not_applicable";
     if (data.event === "staffroom_alert") {
-      emailStatus = sendIncidentEmail(data, location.fields.name || "Unknown classroom", now);
+      emailStatus = sendIncidentEmail(data, readString(location.fields, "name") || "Unknown classroom", now);
     }
 
     return jsonOutput({
@@ -226,7 +226,14 @@ function sendIncidentEmail(data, classroomName, now) {
     const currentStatus = readString(current && current.fields, "emailStatus");
     const sentKey = "sent_" + alertId;
     const props = PropertiesService.getScriptProperties();
-    if (props.getProperty(sentKey) === "yes" || currentStatus === "sent") {
+    if (currentStatus === "sent") return "sent";
+    if (props.getProperty(sentKey) === "yes") {
+      patchDocument("alerts", alertId, {
+        emailStatus: stringValue("sent"),
+        emailTo: stringValue(ALERT_EMAIL_TO),
+        emailSentAt: timestampValue(new Date())
+      });
+      props.deleteProperty(sentKey);
       return "sent";
     }
 
@@ -269,6 +276,7 @@ function sendIncidentEmail(data, classroomName, now) {
       emailTo: stringValue(ALERT_EMAIL_TO),
       emailSentAt: timestampValue(new Date())
     });
+    props.deleteProperty(sentKey);
     return "sent";
   } catch (error) {
     try {
