@@ -777,7 +777,8 @@
         const location = cachedLocations.find(item => roomCodeOf(item) === roomNumber);
         const card = document.createElement(location ? "a" : "article");
         const latest = location ? latestForLocation(location) : { real: null, test: null };
-        const record = latest.real;
+        const record = latest.real || latest.test;
+        const isSimulatedReading = !latest.real && Boolean(latest.test);
         const rawValue = record && (record.rawValue ?? record.rawAdc ?? record.raw_adc);
         const raw = rawValue === undefined || rawValue === null ? NaN : Number(rawValue);
         const valid = Number.isFinite(raw) && raw >= 0 && raw <= 1023;
@@ -804,7 +805,7 @@
         name.textContent = roomNumber;
         const reading = document.createElement("span");
         reading.className = "floorplan-room-reading";
-        reading.textContent = valid ? raw + " ADC" : !location ? "No sensor registered" : latest.test ? "Test data only" : "No live reading";
+        reading.textContent = valid ? raw + " ADC" + (isSimulatedReading ? " · TEST" : "") : !location ? "No sensor registered" : "No live reading";
         const status = document.createElement("span");
         status.className = "floorplan-room-status";
         status.textContent = !location || !roomDevices.length ? "NO SENSOR"
