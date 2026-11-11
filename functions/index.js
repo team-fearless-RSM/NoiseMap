@@ -1,13 +1,12 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const crypto = require("node:crypto");
 
 initializeApp();
 const db = getFirestore();
-const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const ALERT_EMAIL_TO = "guruprasad.kothavale@iteachschools.org";
 const ALERT_EMAIL_FROM = "NoiseMap Alerts <onboarding@resend.dev>";
 
@@ -180,7 +179,6 @@ exports.emailHardwareStaffroomAlert = onDocumentCreated(
   {
     document: "alerts/{alertId}",
     region: "asia-south1",
-    secrets: [RESEND_API_KEY],
     retry: true
   },
   async event => {
@@ -205,10 +203,14 @@ exports.emailHardwareStaffroomAlert = onDocumentCreated(
       .replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY environment variable is not configured");
+    }
+
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": "Bearer " + RESEND_API_KEY.value(),
+        "Authorization": "Bearer " + RESEND_API_KEY,
         "Content-Type": "application/json",
         "Idempotency-Key": "noisemap-alert-" + event.params.alertId
       },
