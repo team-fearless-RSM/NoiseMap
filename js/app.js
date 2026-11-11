@@ -1059,7 +1059,7 @@
   }
 
   function connectLocations() {
-    if (!window.NoiseMap || !window.NoiseMap.configured || !locationList) return;
+    if (!window.NoiseMap || !window.NoiseMap.configured) return;
     if (locationStatus) locationStatus.textContent = "Loading locations from Firestore…";
     setLoadingTimeout(locationStatus, "Loading locations from Firestore…", "Locations could not be confirmed yet. Check your connection or Firestore permissions.");
     if (locationUnsubscribe) locationUnsubscribe();
