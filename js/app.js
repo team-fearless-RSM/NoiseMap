@@ -1336,8 +1336,14 @@
         option.textContent = device.deviceId || "Unnamed device";
         select.appendChild(option);
       });
-      if (previous === "all" && id === "simulatorDevice" && devices.length > 1) select.value = "all";
-      else if (previous && devices.some(device => device.id === previous)) select.value = previous;
+      if (id === "simulatorDevice" && devices.length > 1) {
+        // Default to every registered device so the whole campus can be tested together.
+        select.value = previous === "all" || !previous || !devices.some(device => device.id === previous)
+          ? "all"
+          : previous;
+      } else if (previous && devices.some(device => device.id === previous)) {
+        select.value = previous;
+      }
     });
   }
 
