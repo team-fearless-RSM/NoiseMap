@@ -1,0 +1,49 @@
+name: Deploy Firebase Functions
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "functions/**"
+      - "firebase.json"
+      - ".firebaserc"
+      - ".github/workflows/deploy-firebase-functions.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy NoiseMap Firebase Functions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools
+
+      - name: Store Resend API key in Firebase Secret Manager
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          if [ -z "$RESEND_API_KEY" ]; then
+            echo "Missing GitHub repository secret: RESEND_API_KEY"
+            exit 1
+          fi
+          printf '%s' "$RESEND_API_KEY" | firebase functions:secrets:set RESEND_API_KEY --project noisemap-ead56 --data-file=-
+
+      - name: Deploy Firebase Functions
+        run: firebase deploy --only functions --project noisemap-ead56 --non-interactive
