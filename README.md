@@ -137,8 +137,8 @@ The repository's Pages workflow deploys the static website only. It does not dep
 
 ## Multi-room Wi-Fi demo preview
 
-Open `demo.html` (or choose **Demo preview** from the main dashboard) to explore a standalone browser-only multi-room simulation. It shows four example rooms, ESP8266-style device identities, illustrative raw ADC readings, trends, and a simulated incident feed. Controls pause the simulation, create a sample spike, or reset the values.
+Open **Simulation Lab** from the main NoiseMap sidebar (or the top-bar shortcut) to explore an in-site browser-only multi-room simulation. It shows four example rooms, ESP8266-style device identities, illustrative raw ADC readings, trends, and a simulated incident feed. Controls pause the simulation, create a sample spike, or reset the values.
 
-**This preview does not connect to sensors, Wi-Fi devices, Apps Script, or Firestore.** It does not save records or send email. All displayed values and incidents are generated locally in the browser and must not be presented as real measurements.
+**The in-site simulation does not connect to sensors, Wi-Fi devices, Apps Script, or Firestore.** It does not save records or send email. All displayed values and incidents are generated locally in the browser and must not be presented as real measurements.
 
 The intended future hardware direction is one ESP8266 per room sending observations over school Wi-Fi to the existing NoiseMap backend. The live hardware ingestion path remains the Uno + HC-05 implementation until ESP8266 firmware and authenticated ingestion are implemented and tested.
