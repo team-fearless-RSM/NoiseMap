@@ -46,7 +46,6 @@
         <a class="nav-link" href="#locations" data-page="locations"><span aria-hidden="true">⌖</span> Locations</a>
         <a class="nav-link" href="#alerts" data-page="alerts" data-team-only="true"><span aria-hidden="true">!</span> Staffroom Alerts</a>
         <a class="nav-link" href="#devices" data-page="devices"><span aria-hidden="true">▣</span> Devices</a>
-        <a class="nav-link" href="#simulation-lab" data-page="simulation-lab"><span aria-hidden="true">⌁</span> Simulation Lab</a>
         <a class="nav-link" href="#history" data-page="history"><span aria-hidden="true">⌁</span> Historical Data</a>
         <a class="nav-link" href="#actions" data-page="actions" data-team-only="true"><span aria-hidden="true">✓</span> Action Tracker</a>
         <a class="nav-link" href="#future-development" data-page="future-development"><span aria-hidden="true">↗</span> Future Development</a>
@@ -62,7 +61,7 @@
       <header class="topbar">
         <button class="menu-button" id="menuButton" aria-label="Toggle navigation">☰</button>
         <div class="breadcrumb">Workspace <span>/</span> <strong id="pageName">Overview</strong></div>
-        <div class="topbar-right"><span class="status-dot"></span><span id="signedInEmail">Public view</span><a class="team-login-button" href="#simulation-lab" style="text-decoration:none" aria-label="Open the in-site multi-room simulation">Simulation Lab</a><button class="team-login-button" id="teamSignInButton" type="button">Team sign in</button><button class="signout-button" id="signOutButton" type="button" hidden>Sign out</button><span class="top-avatar">TF</span></div>
+        <div class="topbar-right"><span class="status-dot"></span><span id="signedInEmail">Public view</span><a class="team-login-button" href="#live-monitoring" style="text-decoration:none" aria-label="Open live monitoring">Live Monitoring</a><button class="team-login-button" id="teamSignInButton" type="button">Team sign in</button><button class="signout-button" id="signOutButton" type="button" hidden>Sign out</button><span class="top-avatar">TF</span></div>
       </header>
 
       <aside class="prototype-status-banner" role="note" aria-label="Prototype status">
@@ -145,37 +144,29 @@
           <div><h1>Live Monitoring</h1><p class="intro">Track saved sensor observations as they arrive in Firestore.</p></div>
           <span class="live-monitor-connection" id="liveMonitorConnection">Connecting to Firestore…</span>
         </div>
-        <p class="live-monitor-disclaimer">Live dashboard updates reflect saved records, not a guaranteed continuous hardware connection. Non-simulated records are not automatically proof of hardware origin; manually entered records may also appear. Values are raw ADC (0–1023), not dB or dB(A).</p>
+        <p class="live-monitor-disclaimer">This is the main NoiseMap monitoring view. It plots every saved observation from Firestore, including clearly labelled test readings sent from Devices. Test readings exercise the full data-to-dashboard flow but are not physical measurements or environmental evidence. Values are raw ADC (0–1023), not dB or dB(A).</p>
         <div class="live-monitor-controls panel">
           <div><label for="liveMonitorRange">Time range</label><select id="liveMonitorRange"><option value="24">Last 24 hours</option><option value="7" selected>Last 7 days</option><option value="30">Last 30 days</option></select></div>
           <div><label for="liveMonitorLocation">Monitoring location</label><select id="liveMonitorLocation"><option value="all">All locations</option></select></div>
         </div>
         <div class="live-monitor-kpis">
-          <article class="stat-card"><div class="stat-top"><span>Latest non-simulated reading</span><span class="stat-icon teal">●</span></div><div class="stat-value" id="liveLatestValue">—</div><div class="stat-foot" id="liveLatestTime">No non-simulated reading yet</div></article>
-          <article class="stat-card"><div class="stat-top"><span>Non-simulated readings in range</span><span class="stat-icon blue">⌁</span></div><div class="stat-value" id="liveReadingCount">0</div><div class="stat-foot">Simulated records excluded</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Latest saved reading</span><span class="stat-icon teal">●</span></div><div class="stat-value" id="liveLatestValue">—</div><div class="stat-foot" id="liveLatestTime">No saved reading yet</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Saved readings in range</span><span class="stat-icon blue">⌁</span></div><div class="stat-value" id="liveReadingCount">0</div><div class="stat-foot">Device + test readings</div></article>
           <article class="stat-card"><div class="stat-top"><span>Reporting devices</span><span class="stat-icon violet">◉</span></div><div class="stat-value" id="liveReportingDevices">0</div><div class="stat-foot">Authenticated heartbeat received within the last 2 minutes</div></article>
-          <article class="stat-card"><div class="stat-top"><span>Test readings</span><span class="stat-icon amber">!</span></div><div class="stat-value" id="liveTestCount">0</div><div class="stat-foot">Shown separately; not environmental evidence</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Test readings</span><span class="stat-icon amber">!</span></div><div class="stat-value" id="liveTestCount">0</div><div class="stat-foot">Included in trend · clearly labelled</div></article>
         </div>
         <section class="panel live-monitor-chart-panel">
-          <div class="panel-heading"><div><h2>Raw sensor trend</h2><p id="liveChartSubtitle">Non-simulated readings · ADC 0–1023</p></div><span class="live-chart-key"><i></i> Non-simulated observations</span></div>
-          <div class="live-chart-wrap" id="liveChartWrap"><p class="dashboard-empty-text">Waiting for non-simulated sensor observations. Simulator readings are excluded from this graph.</p></div>
+          <div class="panel-heading"><div><h2>All saved readings</h2><p id="liveChartSubtitle">Device + test readings · ADC 0–1023</p></div><span class="live-chart-key"><i></i> Saved readings · amber = test</span></div>
+          <div class="live-chart-wrap" id="liveChartWrap"><p class="dashboard-empty-text">Waiting for saved sensor observations.</p></div>
         </section>
 
-        <section class="panel live-monitor-chart-panel live-test-panel">
-          <div class="panel-heading"><div><h2>Test-data trend</h2><p>Simulated readings only · raw ADC 0–1023</p></div><span class="simulator-badge">TEST ONLY</span></div>
-          <div class="live-chart-wrap" id="liveTestChartWrap"><p class="dashboard-empty-text">No simulated readings available for this range.</p></div>
-        </section>
         <section class="panel live-monitor-chart-panel">
-          <div class="panel-heading"><div><h2>Location comparison</h2><p>Average non-simulated raw ADC by location · selected time range</p></div></div>
+          <div class="panel-heading"><div><h2>Location comparison</h2><p>Average saved raw ADC by location · includes labelled test readings</p></div></div>
           <div class="live-chart-wrap" id="liveLocationChartWrap"><p class="dashboard-empty-text">No location data available for comparison.</p></div>
         </section>
         <section class="panel live-monitor-table-panel">
-          <div class="panel-heading"><div><h2>Latest non-simulated observations</h2><p>Most recent non-simulated records for the selected range</p></div></div>
+          <div class="panel-heading"><div><h2>Latest observations</h2><p>Most recent saved records · test entries are labelled</p></div></div>
           <div id="liveRealReadings" class="live-monitor-records"><p class="dashboard-empty-text">No non-simulated observations recorded yet.</p></div>
-        </section>
-        <section class="panel live-monitor-table-panel live-test-panel">
-          <div class="panel-heading"><div><h2>Simulated / test observations</h2><p>Kept separate from the real monitoring trend</p></div><span class="simulator-badge">TEST ONLY</span></div>
-          <div id="liveTestReadings" class="live-monitor-records"><p class="dashboard-empty-text">No simulated observations in this range.</p></div>
         </section>
       </section>
       <section class="page-content secondary-page" id="locations">
@@ -276,15 +267,15 @@
         </section>
         <section class="panel sensor-simulator" id="sensorSimulator" hidden aria-label="Sensor simulator">
           <div class="panel-heading"><div><h2>Sensor simulator</h2><p>Generate clearly labelled test readings while the physical NodeMCU is unavailable.</p></div><span class="simulator-badge">TEST MODE</span></div>
-          <label for="simulatorDevice">Select registered device</label>
-          <select id="simulatorDevice"><option value="">Select a device</option></select>
+          <label for="simulatorDevice">Select device(s)</label>
+          <select id="simulatorDevice"><option value="">Select device(s)</option></select>
           <div class="simulator-controls">
             <button class="location-submit" type="button" id="simulatorOneReading">Send one test reading</button>
             <button class="simulator-start" type="button" id="simulatorStart">Start automatic test</button>
             <button class="simulator-stop" type="button" id="simulatorStop" disabled>Stop</button>
           </div>
           <p class="simulator-status" id="simulatorStatus" role="status">Simulator stopped. No readings are being generated.</p>
-          <p class="simulator-disclaimer">All simulator records are marked SIMULATED in Firestore. They are not non-simulated sensor readings and must not be used as environmental evidence.</p>
+          <p class="simulator-disclaimer">These test readings are saved to the same Firestore observations collection used by the monitoring dashboard. Choose one device or All registered devices. Every record remains marked SIMULATED / TEST, appears in Live Monitoring and historical records, and is excluded from hardware alerts and environmental evidence.</p>
         </section>
         <section class="panel sensor-simulator" id="endpointTestPanel" hidden aria-label="Apps Script endpoint test records">
           <div class="panel-heading"><div><h2>Apps Script endpoint verification</h2><p>Authenticated test records received by the web app and saved separately from live sensor observations.</p></div><span class="simulator-badge">TEAM ONLY · TEST DATA</span></div>
@@ -316,30 +307,6 @@
           </form>
         </dialog>
         <div class="panel empty-panel" id="deviceEmpty"><span class="empty-icon">▣</span><h2>No device records yet</h2><p>Registered sensor units will appear here after a team member adds them.</p></div>
-      </section>
-      <section class="page-content secondary-page" id="simulation-lab">
-        <div class="eyebrow">NOISEMAP · TEST ENVIRONMENT</div>
-        <div class="simulation-heading">
-          <div><h1>Multi-room Simulation Lab</h1><p class="intro">Preview how multiple room devices could appear together in NoiseMap before physical ESP8266 sensors are connected.</p></div>
-          <span class="simulator-badge">SIMULATION · NOT LIVE</span>
-        </div>
-        <div class="simulation-warning"><strong>DEMO DATA ONLY</strong><p>All readings below are generated in this browser. They are illustrative raw ADC-style values (0–1023), not physical measurements, dB or dB(A). This page does not write to Firestore, create real alerts, or send emails.</p></div>
-        <div class="simulation-kpis">
-          <article class="stat-card"><div class="stat-top"><span>Demo rooms</span><span class="stat-icon teal">⌖</span></div><div class="stat-value" id="simRoomCount">4</div><div class="stat-foot">Example monitoring points</div></article>
-          <article class="stat-card"><div class="stat-top"><span>Simulated devices</span><span class="stat-icon blue">◉</span></div><div class="stat-value" id="simOnlineCount">4</div><div class="stat-foot">Browser-generated status</div></article>
-          <article class="stat-card"><div class="stat-top"><span>Elevated / high</span><span class="stat-icon amber">!</span></div><div class="stat-value" id="simAttentionCount">0</div><div class="stat-foot">Demo bands only</div></article>
-          <article class="stat-card"><div class="stat-top"><span>Open demo incidents</span><span class="stat-icon violet">⌁</span></div><div class="stat-value" id="simAlertCount">0</div><div class="stat-foot">No real alerts or email</div></article>
-        </div>
-        <section class="panel simulation-room-panel">
-          <div class="panel-heading"><div><h2>Room monitoring preview</h2><p>Example device identity · raw ADC values</p></div><div class="simulation-controls"><button class="location-submit" id="simPauseBtn" type="button">Pause</button><button class="location-submit" id="simSpikeBtn" type="button">Simulate spike</button><button class="calibration-secondary" id="simResetBtn" type="button">Reset</button></div></div>
-          <div class="simulation-room-grid" id="simRoomGrid" aria-live="polite"></div>
-          <p class="simulation-state" id="simRunStatus" role="status">Simulation running · updates every 3 seconds</p>
-        </section>
-        <div class="simulation-lower-grid">
-          <section class="panel"><div class="panel-heading"><div><h2>Demo incident feed</h2><p>Illustrative events only</p></div><span class="simulator-badge">TEST ONLY</span></div><div id="simIncidentFeed" class="simulation-feed"><p class="dashboard-empty-text">No demo incidents yet.</p></div></section>
-          <section class="panel"><div class="panel-heading"><div><h2>Room trend</h2><p>Recent generated samples · ADC 0–1023</p></div></div><div id="simTrendChart" class="simulation-chart" role="img" aria-label="Simulated trend chart for the first two rooms"></div></section>
-        </div>
-        <section class="panel simulation-table-panel"><div class="panel-heading"><div><h2>Latest demo observations</h2><p>Browser-only records · not saved to NoiseMap</p></div><span class="simulator-badge">SIMULATED</span></div><div class="table-scroll"><table class="simulation-table"><thead><tr><th>Time</th><th>Room</th><th>Device ID</th><th>Raw ADC</th><th>Status</th><th>Source</th></tr></thead><tbody id="simObservationRows"><tr><td colspan="6">Waiting for first simulated update…</td></tr></tbody></table></div></section>
       </section>
       <section class="page-content secondary-page" id="history">
         <div class="eyebrow">WORKSPACE</div><h1>Historical Data</h1>
@@ -432,6 +399,5 @@
   <script src="js/audio-alerts.js"></script>
   <script src="js/export-csv.js"></script>
   <script src="js/app.js"></script>
-  <script src="js/multiroom-simulator.js"></script>
-</body>
+  </body>
 </html>
