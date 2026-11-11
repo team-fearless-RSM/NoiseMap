@@ -1297,8 +1297,14 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 @media(max-width:600px){.calibration-points{grid-template-columns:1fr}.exposure-estimate-row{grid-template-columns:1fr}}
 
 /* Planned sensor state in classroom floorplan and location monitoring */
-.floorplan-room.is-planned{border-color:#e4d4ad;background:linear-gradient(145deg,#fff9ed,#fffdf8)}
-.floorplan-room.is-planned .floorplan-room-status{background:#fff0d4;color:#95631d}
+.floorplan-room.is-planned{color:#effaff!important;border-color:rgba(255,193,92,.72);background:linear-gradient(145deg,#173b53,#0c263d);box-shadow:inset 0 0 0 1px rgba(255,193,92,.12)}
+.floorplan-room.is-planned:before{background:#ffc15c}
+.floorplan-room.is-planned .floorplan-room-number{color:#c4d8e5}
+.floorplan-room.is-planned .floorplan-room-name{color:#ffffff}
+.floorplan-room.is-planned .floorplan-room-reading{color:#ffffff}
+.floorplan-room.is-planned .floorplan-room-status{display:inline-flex;align-self:flex-start;padding:5px 8px;border-radius:5px;background:rgba(255,193,92,.16);color:#ffd18a}
+.floorplan-room.is-planned .floorplan-room-time{color:#b8cfdd}
+.floorplan-room.is-planned:hover,.floorplan-room.is-planned:focus-visible{border-color:#ffd18a;box-shadow:0 8px 22px rgba(0,0,0,.24),inset 0 0 0 1px rgba(255,193,92,.2)}
 .device-monitor-status.is-planned{background:#fff0d4;color:#95631d;border-color:#f0dfbd}
 .location-detail-device .calibration-open-button{justify-self:start;grid-column:1/-1}
 
