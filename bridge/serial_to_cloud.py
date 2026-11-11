@@ -127,7 +127,7 @@ def main():
                 last_uploaded_at = time.monotonic()
                 print(
                     f"Saved ADC={message['raw_adc']} · event={message['event']}"
-                    + (f" · email={result.get('email_status')}" if message["event"] == "staffroom_alert" else "")
+                    + (" · alert saved; email monitor checks within 5 minutes" if message["event"] == "staffroom_alert" else "")
                 )
             except (UnicodeError, json.JSONDecodeError, ValueError) as exc:
                 print(f"Skipped serial line: {exc}", file=sys.stderr)
