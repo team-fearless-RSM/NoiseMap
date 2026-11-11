@@ -1,340 +1,1489 @@
-const FIREBASE_PROJECT_ID = "noisemap-ead56";
-const FIRESTORE_BASE =
-  "https://firestore.googleapis.com/v1/projects/" +
-  FIREBASE_PROJECT_ID + "/databases/(default)/documents";
-const ALERT_EMAIL_TO = "guruprasad.kothavale@iteachschools.org";
-const SOURCE = "arduino_uno_hc05";
+const NM_PROJECT = "noisemap-ead56";
 
-function doGet() {
-  return jsonOutput({ ok: true, service: "NoiseMap Apps Script bridge" });
+const NM_RECIPIENT =
+  "guruprasad.kothavale@iteachschools.org";
+
+const NM_HARDWARE_SOURCE = "arduino_uno_hc05";
+const NM_SIMULATOR_SOURCE = "noise_map_simulator";
+
+const NM_MANUAL_TEST_ALERT_ID =
+  "WrLs3x0sthG6lR58bciS";
+
+const NM_WEB_APP_URL =
+  "https://script.google.com/macros/s/AKfycbz6ART_ZOU3sx9a15_kmBWs8hN8hielk_KhnpeVxIrHRuVJYO4hYpN8xDS8-in63jcIUQ/exec";
+
+const NM_OBSERVATION_INTERVAL_SECONDS = 10;
+const NM_QUIET_PERIOD_MINUTES = 10;
+const NM_MAX_READING_GAP_SECONDS = 30;
+const NM_MIN_NORMAL_READINGS = 48;
+
+const NM_HEARTBEAT_INTERVAL_SECONDS = 30;
+const NM_HEARTBEAT_TIMEOUT_SECONDS = 120;
+
+
+// ============================================================
+// 2. FIRESTORE HELPERS
+// ============================================================
+
+function nmBaseUrl() {
+  return "https://firestore.googleapis.com/v1/projects/" +
+    NM_PROJECT +
+    "/databases/(default)/documents";
 }
 
-function authorizeServices() {
-  const token = ScriptApp.getOAuthToken();
-  const remainingEmailQuota = MailApp.getRemainingDailyQuota();
-  const request = UrlFetchApp.getRequest(FIRESTORE_BASE);
-  if (!token || !request) throw new Error("Apps Script authorisation is incomplete");
-  Logger.log("NoiseMap bridge authorised. Remaining daily email recipients: " + remainingEmailQuota);
+function nmHeaders() {
+  return {
+    Authorization: "Bearer " + ScriptApp.getOAuthToken()
+  };
 }
+
+function nmGetString(fields, name, fallback) {
+  if (
+    fields &&
+    fields[name] &&
+    fields[name].stringValue !== undefined
+  ) {
+    return fields[name].stringValue;
+  }
+
+  return fallback || "";
+}
+
+function nmGetInteger(fields, name, fallback) {
+  if (!fields || !fields[name]) return fallback || 0;
+  const parsed = Number(fields[name].integerValue);
+  return Number.isFinite(parsed) ? parsed : (fallback || 0);
+}
+
+function nmGetTimestamp(fields, name) {
+  if (
+    !fields ||
+    !fields[name] ||
+    !fields[name].timestampValue
+  ) {
+    return null;
+  }
+
+  const value = new Date(
+    fields[name].timestampValue
+  ).getTime();
+
+  return isNaN(value) ? null : value;
+}
+
+function nmFirestoreWrite(method, url, data) {
+  const response = UrlFetchApp.fetch(url, {
+    method: method,
+    headers: nmHeaders(),
+    contentType: "application/json",
+    payload: JSON.stringify(data),
+    muteHttpExceptions: true
+  });
+
+  const status = response.getResponseCode();
+
+  if (status < 200 || status >= 300) {
+    throw new Error(
+      "Firestore HTTP " + status + ": " +
+      response.getContentText()
+    );
+  }
+
+  const body = response.getContentText();
+
+  return body ? JSON.parse(body) : {};
+}
+
+
+// ============================================================
+// 3. DEVICE SECRET
+// ============================================================
+
+function createNoiseMapDeviceSecret() {
+  const secret =
+    Utilities.getUuid() + Utilities.getUuid();
+
+  PropertiesService
+    .getScriptProperties()
+    .setProperty("NM_DEVICE_SECRET", secret);
+
+  Logger.log("New NoiseMap device secret generated.");
+  Logger.log("Copy it privately for device configuration.");
+  Logger.log("Never share it publicly.");
+}
+
+
+// ============================================================
+// 4. FIRESTORE DIAGNOSTICS
+// ============================================================
+
+function testNoiseMapFirestore() {
+  const response = UrlFetchApp.fetch(
+    nmBaseUrl() + "/observations?pageSize=5",
+    {
+      method: "get",
+      headers: nmHeaders(),
+      muteHttpExceptions: true
+    }
+  );
+
+  Logger.log(
+    "HTTP status: " + response.getResponseCode()
+  );
+
+  Logger.log(response.getContentText());
+}
+
+function testNoiseMapObservationFields() {
+  const response = UrlFetchApp.fetch(
+    nmBaseUrl() + "/observations?pageSize=5",
+    {
+      method: "get",
+      headers: nmHeaders(),
+      muteHttpExceptions: true
+    }
+  );
+
+  if (response.getResponseCode() !== 200) {
+    Logger.log(response.getContentText());
+    return;
+  }
+
+  const result = JSON.parse(response.getContentText());
+
+  if (!result.documents || result.documents.length === 0) {
+    Logger.log("No observation documents found.");
+    return;
+  }
+
+  result.documents.forEach(function(doc, index) {
+    Logger.log("OBSERVATION " + (index + 1));
+    Logger.log(JSON.stringify(doc, null, 2));
+  });
+}
+
+function diagnoseAllNoiseMapObservations() {
+  const documents = nmReadCollection("observations");
+
+  let withFields = 0;
+  let withoutFields = 0;
+  let realESP = 0;
+  let simulated = 0;
+
+  documents.forEach(function(doc) {
+    const fields = doc.fields || {};
+
+    if (Object.keys(fields).length > 0) {
+      withFields++;
+    } else {
+      withoutFields++;
+    }
+
+    if (
+      nmGetString(fields, "source", "") === NM_HARDWARE_SOURCE &&
+      (!fields.isSimulated ||
+       fields.isSimulated.booleanValue !== true)
+    ) {
+      realESP++;
+    }
+
+    if (
+      fields.isSimulated &&
+      fields.isSimulated.booleanValue === true
+    ) {
+      simulated++;
+    }
+  });
+
+  Logger.log("TOTAL DOCUMENTS: " + documents.length);
+  Logger.log("DOCUMENTS WITH FIELDS: " + withFields);
+  Logger.log("EMPTY DOCUMENTS: " + withoutFields);
+  Logger.log("REAL ESP8266 DOCUMENTS: " + realESP);
+  Logger.log("SIMULATED DOCUMENTS: " + simulated);
+}
+
+
+// ============================================================
+// 5. EMAIL TEST
+// ============================================================
+
+function testNoiseMapEmail() {
+  MailApp.sendEmail({
+    to: NM_RECIPIENT,
+    subject: "NoiseMap - Email Test Successful",
+    body:
+      "Hello!\n\n" +
+      "This is a test email from NoiseMap.\n\n" +
+      "Email integration: SUCCESSFUL\n\n" +
+      "Team Fearless | NoiseMap"
+  });
+
+  Logger.log("Test email sent.");
+}
+
+
+// ============================================================
+// 6. MANUAL TEST ALERT EMAIL
+// NO ACTION TRACKER ENTRY
+// ============================================================
+
+function runNoiseMapManualTest() {
+  const url =
+    nmBaseUrl() +
+    "/alerts/" +
+    encodeURIComponent(NM_MANUAL_TEST_ALERT_ID);
+
+  const response = UrlFetchApp.fetch(url, {
+    method: "get",
+    headers: nmHeaders(),
+    muteHttpExceptions: true
+  });
+
+  if (response.getResponseCode() !== 200) {
+    throw new Error(
+      "Could not read manual test alert: " +
+      response.getContentText()
+    );
+  }
+
+  const alert = JSON.parse(response.getContentText());
+  const fields = alert.fields || {};
+
+  if (
+    nmGetString(fields, "source", "") !== "manual_test" ||
+    nmGetString(fields, "status", "") !== "open" ||
+    Number(
+      fields.warningCount
+        ? fields.warningCount.integerValue
+        : 0
+    ) < 3
+  ) {
+    throw new Error(
+      "Alert does not meet manual test conditions."
+    );
+  }
+
+  MailApp.sendEmail({
+    to: NM_RECIPIENT,
+    subject: "NoiseMap - Manual Alert Test",
+    body:
+      "This is a manual test alert from NoiseMap.\n\n" +
+      "Team Fearless | NoiseMap"
+  });
+
+  Logger.log("Manual test alert email sent.");
+}
+
+
+// ============================================================
+// 7. READ FIRESTORE COLLECTION
+// ============================================================
+
+function nmReadCollection(collectionName) {
+  const response = UrlFetchApp.fetch(
+    nmBaseUrl() +
+    "/" + encodeURIComponent(collectionName) +
+    "?pageSize=1000",
+    {
+      method: "get",
+      headers: nmHeaders(),
+      muteHttpExceptions: true
+    }
+  );
+
+  if (response.getResponseCode() !== 200) {
+    throw new Error(
+      "Could not read collection " +
+      collectionName + ": " +
+      response.getContentText()
+    );
+  }
+
+  const result = JSON.parse(response.getContentText());
+
+  return result.documents || [];
+}
+
+
+// ============================================================
+// 8. JSON RESPONSE
+// ============================================================
+
+function nmJsonResponse(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+
+// ============================================================
+// 9. MAIN WEB APP RECEIVER
+// ============================================================
 
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
-      return jsonOutput({ ok: false, error: "POST JSON body required" }, 400);
+      throw new Error("Request body is missing.");
     }
+
     const data = JSON.parse(e.postData.contents);
-    const expectedToken = PropertiesService.getScriptProperties()
-      .getProperty("NOISEMAP_WEBHOOK_TOKEN");
-    if (!expectedToken || !constantTimeEqual(String(data.webhook_token || ""), expectedToken)) {
-      return jsonOutput({ ok: false, error: "Unauthorised bridge request" }, 401);
+
+    const secret = PropertiesService
+      .getScriptProperties()
+      .getProperty("NM_DEVICE_SECRET");
+
+    if (!secret) {
+      throw new Error("NoiseMap device secret is not configured.");
     }
 
-    validatePayload(data);
-    const device = findRegisteredDevice(data.device_id);
-    if (device.locationId !== data.location_id) {
-      throw new Error("Device is not assigned to the reported location");
-    }
-    const location = getCachedLocation(data.location_id);
-    if (!location) throw new Error("Registered location was not found");
-
-    const now = new Date();
-    const observationId = Utilities.getUuid().replace(/-/g, "");
-    createDocument("observations", observationId, {
-      deviceId: stringValue(data.device_id),
-      locationId: stringValue(data.location_id),
-      timestamp: timestampValue(now),
-      rawValue: integerValue(data.raw_adc),
-      measurementType: stringValue("raw_adc"),
-      unit: stringValue("ADC (0-1023)"),
-      thresholdAdc: integerValue(data.threshold_adc),
-      status: stringValue(data.status),
-      warningCount: integerValue(data.warning_count),
-      source: stringValue(SOURCE),
-      firmwareVersion: stringValue(data.firmware_version),
-      createdAt: timestampValue(now)
-    });
-
-    updateHeartbeatIfDue(device.documentId, data.device_id, now);
-
-    let emailStatus = "not_applicable";
-    if (data.event === "staffroom_alert") {
-      emailStatus = sendIncidentEmail(data, readString(location.fields, "name") || "Unknown classroom", now);
+    if (data.api_key !== secret) {
+      throw new Error("Unauthorized device.");
     }
 
-    return jsonOutput({
-      ok: true,
-      observation_id: observationId,
-      event: data.event,
-      email_status: emailStatus
-    });
-  } catch (error) {
-    console.error("NoiseMap bridge error: " + error.stack);
-    return jsonOutput({ ok: false, error: String(error.message || error) }, 500);
-  }
-}
 
-function validatePayload(data) {
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    throw new Error("JSON object required");
-  }
-  ["device_id", "location_id"].forEach(function(key) {
-    if (typeof data[key] !== "string" || !/^[A-Za-z0-9_-]{3,64}$/.test(data[key])) {
-      throw new Error("Invalid " + key);
+    // --------------------------------------------------------
+    // HEALTH CHECK
+    // --------------------------------------------------------
+
+    if (data.event === "health_check") {
+      return nmJsonResponse({
+        ok: true,
+        message: "NoiseMap endpoint is working."
+      });
     }
-  });
-  if (!Number.isInteger(data.raw_adc) || data.raw_adc < 0 || data.raw_adc > 1023) {
-    throw new Error("raw_adc must be an integer from 0 to 1023");
-  }
-  if (!Number.isInteger(data.threshold_adc) || data.threshold_adc < 0 || data.threshold_adc > 1023) {
-    throw new Error("threshold_adc must be an integer from 0 to 1023");
-  }
-  if (!Number.isInteger(data.warning_count) || data.warning_count < 0 || data.warning_count > 3) {
-    throw new Error("warning_count must be an integer from 0 to 3");
-  }
-  if (!["NOISE", "NORMAL"].includes(data.status)) {
-    throw new Error("status must be NOISE or NORMAL");
-  }
-  if (!["observation", "staffroom_alert", "warning_reset"].includes(data.event)) {
-    throw new Error("Unsupported event");
-  }
-  if (data.event === "staffroom_alert" &&
-      (data.warning_count !== 3 ||
-       typeof data.episode_id !== "string" ||
-       !/^[A-Za-z0-9_-]{6,64}$/.test(data.episode_id))) {
-    throw new Error("Staffroom alert requires warning_count 3 and a valid episode_id");
-  }
-}
 
-function findRegisteredDevice(deviceId) {
-  const cache = CacheService.getScriptCache();
-  const cacheKey = "device_" + deviceId;
-  const cached = cache.get(cacheKey);
-  if (cached) return JSON.parse(cached);
 
-  const queryUrl = FIRESTORE_BASE + ":runQuery";
-  const query = {
-    structuredQuery: {
-      from: [{ collectionId: "devices" }],
-      where: {
-        fieldFilter: {
-          field: { fieldPath: "deviceId" },
-          op: "EQUAL",
-          value: stringValue(deviceId)
+    // --------------------------------------------------------
+    // DEVICE HEARTBEAT
+    // --------------------------------------------------------
+
+    if (data.event === "heartbeat") {
+      const deviceId = String(data.device_id || "").trim();
+      const locationId = String(data.location_id || "").trim();
+
+      if (!deviceId || !locationId) {
+        throw new Error(
+          "Heartbeat requires device_id and location_id."
+        );
+      }
+
+      // Find registered device by its deviceId FIELD.
+      // Firestore document ID can be different.
+      const queryUrl = nmBaseUrl() + ":runQuery";
+
+      const queryPayload = {
+        structuredQuery: {
+          from: [
+            { collectionId: "devices" }
+          ],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: "deviceId" },
+              op: "EQUAL",
+              value: { stringValue: deviceId }
+            }
+          },
+          limit: 2
         }
-      },
-      limit: 2
+      };
+
+      const queryResponse = UrlFetchApp.fetch(
+        queryUrl,
+        {
+          method: "post",
+          headers: nmHeaders(),
+          contentType: "application/json",
+          payload: JSON.stringify(queryPayload),
+          muteHttpExceptions: true
+        }
+      );
+
+      if (queryResponse.getResponseCode() !== 200) {
+        throw new Error(
+          "Could not search registered devices: " +
+          queryResponse.getContentText()
+        );
+      }
+
+      const queryResults = JSON.parse(
+        queryResponse.getContentText()
+      );
+
+      const matchingDevices = queryResults
+        .filter(function(item) {
+          return item && item.document;
+        })
+        .map(function(item) {
+          return item.document;
+        });
+
+      if (matchingDevices.length === 0) {
+        throw new Error(
+          "Device ID is not registered in NoiseMap: " +
+          deviceId
+        );
+      }
+
+      if (matchingDevices.length > 1) {
+        throw new Error(
+          "More than one device has this deviceId. " +
+          "Please make deviceId values unique."
+        );
+      }
+
+      const registeredDevice = matchingDevices[0];
+      const deviceFields = registeredDevice.fields || {};
+
+      // IMPORTANT FIX:
+      // runQuery returns a resource name, not a full URL.
+      // Build the full Firestore REST URL here.
+      const deviceDocumentUrl =
+        "https://firestore.googleapis.com/v1/" +
+        registeredDevice.name;
+
+      const registeredDeviceId = nmGetString(
+        deviceFields,
+        "deviceId",
+        ""
+      );
+
+      if (registeredDeviceId !== deviceId) {
+        throw new Error(
+          "Registered device ID verification failed."
+        );
+      }
+
+      const registeredLocationId = nmGetString(
+        deviceFields,
+        "locationId",
+        ""
+      );
+
+      if (
+        !registeredLocationId ||
+        registeredLocationId !== locationId
+      ) {
+        throw new Error(
+          "Heartbeat location does not match the registered device location."
+        );
+      }
+
+      const connectionStatus = nmGetString(
+        deviceFields,
+        "connectionStatus",
+        ""
+      ).toLowerCase();
+
+      if (connectionStatus === "planned") {
+        throw new Error(
+          "This device is still marked as planned. " +
+          "Activate/register it before accepting hardware heartbeats."
+        );
+      }
+
+      // Verify assigned location exists and is active.
+      const locationUrl =
+        nmBaseUrl() +
+        "/locations/" +
+        encodeURIComponent(registeredLocationId);
+
+      const locationResponse = UrlFetchApp.fetch(
+        locationUrl,
+        {
+          method: "get",
+          headers: nmHeaders(),
+          muteHttpExceptions: true
+        }
+      );
+
+      if (locationResponse.getResponseCode() !== 200) {
+        throw new Error(
+          "The device's assigned location was not found in NoiseMap."
+        );
+      }
+
+      const registeredLocation = JSON.parse(
+        locationResponse.getContentText()
+      );
+
+      const locationStatus = nmGetString(
+        registeredLocation.fields || {},
+        "status",
+        ""
+      ).toLowerCase();
+
+      if (locationStatus !== "active") {
+        throw new Error(
+          "The device's assigned location is not active."
+        );
+      }
+
+      const now = new Date().toISOString();
+
+      const heartbeatFields = {
+        lastHeartbeatAt: {
+          timestampValue: now
+        },
+        lastHeartbeatSource: {
+          stringValue: "apps_script_hc05_bridge"
+        },
+        lastHeartbeatFirmwareVersion: {
+          stringValue: String(
+            data.firmware_version || "unknown"
+          )
+        },
+        lastHeartbeatIntervalSeconds: {
+          integerValue: String(
+            NM_HEARTBEAT_INTERVAL_SECONDS
+          )
+        }
+      };
+
+      const updateUrl =
+        deviceDocumentUrl +
+        "?updateMask.fieldPaths=lastHeartbeatAt" +
+        "&updateMask.fieldPaths=lastHeartbeatSource" +
+        "&updateMask.fieldPaths=lastHeartbeatFirmwareVersion" +
+        "&updateMask.fieldPaths=lastHeartbeatIntervalSeconds";
+
+      nmFirestoreWrite(
+        "patch",
+        updateUrl,
+        { fields: heartbeatFields }
+      );
+
+      return nmJsonResponse({
+        ok: true,
+        message: "Device heartbeat received.",
+        device_id: deviceId,
+        firestore_document: deviceDocumentUrl.split("/").pop(),
+        location_id: locationId,
+        last_heartbeat: now
+      });
     }
-  };
-  const result = firestoreRequest("post", queryUrl, query);
-  const documents = (result || []).filter(function(row) { return !!row.document; });
-  if (documents.length !== 1) {
-    throw new Error("Expected exactly one registered device; found " + documents.length);
-  }
-  const doc = documents[0].document;
-  const device = {
-    documentId: doc.name.split("/").pop(),
-    locationId: readString(doc.fields, "locationId")
-  };
-  if (!device.locationId) throw new Error("Registered device has no location assignment");
-  cache.put(cacheKey, JSON.stringify(device), 21600);
-  return device;
-}
 
-function getCachedLocation(locationId) {
-  const cache = CacheService.getScriptCache();
-  const key = "location_" + locationId;
-  const cached = cache.get(key);
-  if (cached) return JSON.parse(cached);
-  const location = getDocument("locations", locationId);
-  if (location) cache.put(key, JSON.stringify(location), 21600);
-  return location;
-}
 
-function getDocument(collection, documentId) {
-  const url = FIRESTORE_BASE + "/" + collection + "/" + encodeURIComponent(documentId);
-  try {
-    return firestoreRequest("get", url, null);
+    // --------------------------------------------------------
+    // SEPARATE FIRESTORE TEST COLLECTION
+    // --------------------------------------------------------
+
+    if (data.event === "endpoint_test_observation") {
+      const deviceId = String(data.device_id || "");
+      const locationId = String(data.location_id || "");
+
+      if (!deviceId || !locationId) {
+        throw new Error(
+          "Test device_id and location_id are required."
+        );
+      }
+
+      const testId = Utilities.getUuid();
+      const now = new Date().toISOString();
+
+      const testFields = {
+        deviceId: { stringValue: deviceId },
+        locationId: { stringValue: locationId },
+        timestamp: { timestampValue: now },
+        createdAt: { timestampValue: now },
+        rawValue: { integerValue: "123" },
+        measurementType: { stringValue: "raw_adc" },
+        unit: { stringValue: "ADC (0-1023)" },
+        status: { stringValue: "NORMAL" },
+        source: {
+          stringValue: "apps_script_endpoint_test"
+        },
+        isSimulated: { booleanValue: true }
+      };
+
+      nmFirestoreWrite(
+        "patch",
+        nmBaseUrl() +
+        "/endpoint_test_observations/" +
+        testId,
+        { fields: testFields }
+      );
+
+      return nmJsonResponse({
+        ok: true,
+        message: "Test observation saved.",
+        collection: "endpoint_test_observations",
+        document_id: testId,
+        simulated: true
+      });
+    }
+
+
+    // --------------------------------------------------------
+    // NORMAL OBSERVATION
+    // --------------------------------------------------------
+
+    if (data.event === "observation" || data.event === "warning_reset") {
+      const deviceId = String(data.device_id || "");
+      const locationId = String(data.location_id || "");
+
+      const rawAdc = Number(data.raw_adc);
+
+      if (!deviceId || !locationId) {
+        throw new Error(
+          "Observation requires device_id and location_id."
+        );
+      }
+
+      if (
+        !Number.isFinite(rawAdc) ||
+        rawAdc < 0 ||
+        rawAdc > 1023
+      ) {
+        throw new Error(
+          "raw_adc must be between 0 and 1023."
+        );
+      }
+
+      const now = new Date().toISOString();
+      const observationId = Utilities.getUuid();
+
+      const status = String(data.status || "NORMAL");
+      const warningCount = Number(data.warning_count || 0);
+
+      const observationFields = {
+        deviceId: { stringValue: deviceId },
+        locationId: { stringValue: locationId },
+        timestamp: { timestampValue: now },
+        createdAt: { timestampValue: now },
+        rawValue: {
+          integerValue: String(rawAdc)
+        },
+        measurementType: {
+          stringValue: "raw_adc"
+        },
+        unit: {
+          stringValue: "ADC (0-1023)"
+        },
+        status: {
+          stringValue: status
+        },
+        warningCount: {
+          integerValue: String(warningCount)
+        },
+        source: {
+          stringValue: NM_HARDWARE_SOURCE
+        },
+        isSimulated: {
+          booleanValue: false
+        },
+        firmwareVersion: {
+          stringValue: String(
+            data.firmware_version || "unknown"
+          )
+        }
+      };
+
+      nmFirestoreWrite(
+        "patch",
+        nmBaseUrl() +
+        "/observations/" +
+        observationId,
+        { fields: observationFields }
+      );
+
+      return nmJsonResponse({
+        ok: true,
+        message: data.event === "warning_reset"
+          ? "Normal/reset reading received."
+          : "Reading received.",
+        observation_id: observationId
+      });
+    }
+
+
+    // --------------------------------------------------------
+    // STAFFROOM ALERT
+    // --------------------------------------------------------
+
+    if (data.event === "staffroom_alert") {
+      const deviceId = String(data.device_id || "");
+      const locationId = String(data.location_id || "");
+
+      if (!deviceId || !locationId) {
+        throw new Error(
+          "Staffroom alert requires device and location IDs."
+        );
+      }
+
+      const alertId = Utilities.getUuid();
+      const now = new Date().toISOString();
+
+      const alertFields = {
+        deviceId: { stringValue: deviceId },
+        locationId: { stringValue: locationId },
+        source: { stringValue: NM_HARDWARE_SOURCE },
+        status: { stringValue: "open" },
+        createdAt: { timestampValue: now },
+        timestamp: { timestampValue: now },
+        warningCount: {
+          integerValue: String(
+            Number(data.warning_count || 0)
+          )
+        },
+        message: {
+          stringValue: String(
+            data.message || "Noise threshold exceeded."
+          )
+        }
+      };
+
+      nmFirestoreWrite(
+        "patch",
+        nmBaseUrl() +
+        "/alerts/" +
+        alertId,
+        { fields: alertFields }
+      );
+
+      return nmJsonResponse({
+        ok: true,
+        message: "Staffroom alert saved.",
+        alert_id: alertId
+      });
+    }
+
+
+    throw new Error(
+      "Unknown event type: " + String(data.event)
+    );
+
   } catch (error) {
-    if (String(error.message).indexOf("HTTP 404") >= 0) return null;
-    throw error;
+    console.error(
+      "NoiseMap receiver error: " + error.message
+    );
+
+    return nmJsonResponse({
+      ok: false,
+      error: error.message
+    });
   }
 }
 
-function createDocument(collection, documentId, fields) {
-  const url = FIRESTORE_BASE + "/" + collection +
-    "?documentId=" + encodeURIComponent(documentId);
-  return firestoreRequest("post", url, { fields: fields });
+
+// ============================================================
+// 10. TEST WEB APP HEALTH
+// ============================================================
+
+function testNoiseMapWebApp() {
+  const secret = PropertiesService
+    .getScriptProperties()
+    .getProperty("NM_DEVICE_SECRET");
+
+  if (!secret) {
+    throw new Error("Device secret is missing.");
+  }
+
+  const response = UrlFetchApp.fetch(
+    NM_WEB_APP_URL,
+    {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify({
+        api_key: secret,
+        event: "health_check"
+      }),
+      muteHttpExceptions: true
+    }
+  );
+
+  Logger.log(
+    "HTTP: " + response.getResponseCode()
+  );
+
+  Logger.log(response.getContentText());
 }
 
-function patchDocument(collection, documentId, fields) {
-  const fieldNames = Object.keys(fields);
-  const masks = fieldNames.map(function(name) {
-    return "updateMask.fieldPaths=" + encodeURIComponent(name);
-  }).join("&");
-  const url = FIRESTORE_BASE + "/" + collection + "/" +
-    encodeURIComponent(documentId) + "?" + masks;
-  return firestoreRequest("patch", url, { fields: fields });
-}
 
-function firestoreRequest(method, url, body) {
-  const options = {
-    method: method,
-    headers: { Authorization: "Bearer " + ScriptApp.getOAuthToken() },
-    muteHttpExceptions: true
+// ============================================================
+// 11. TEST SEPARATE FIRESTORE COLLECTION WRITE
+// ============================================================
+
+function testNoiseMapEndpointWrite() {
+  const secret = PropertiesService
+    .getScriptProperties()
+    .getProperty("NM_DEVICE_SECRET");
+
+  if (!secret) {
+    throw new Error("Device secret is missing.");
+  }
+
+  const payload = {
+    api_key: secret,
+    event: "endpoint_test_observation",
+    device_id: "NOISEMAP_TEST_DEVICE",
+    location_id: "NOISEMAP_TEST_LOCATION"
   };
-  if (body !== null) {
-    options.contentType = "application/json";
-    options.payload = JSON.stringify(body);
-  }
-  const response = UrlFetchApp.fetch(url, options);
-  const status = response.getResponseCode();
-  const text = response.getContentText();
-  if (status < 200 || status >= 300) {
-    throw new Error("Firestore API HTTP " + status + ": " + text.slice(0, 400));
-  }
-  return text ? JSON.parse(text) : {};
+
+  const response = UrlFetchApp.fetch(
+    NM_WEB_APP_URL,
+    {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    }
+  );
+
+  Logger.log(
+    "HTTP: " + response.getResponseCode()
+  );
+
+  Logger.log(response.getContentText());
 }
 
-function updateHeartbeatIfDue(deviceDocumentId, deviceId, now) {
-  const props = PropertiesService.getScriptProperties();
-  const key = "heartbeat_" + deviceId;
-  const last = Number(props.getProperty(key) || 0);
-  if (now.getTime() - last < 60000) return;
 
-  patchDocument("devices", deviceDocumentId, {
-    lastHeartbeatAt: timestampValue(now),
-    connectionStatus: stringValue("online")
+// ============================================================
+// 12. HEARTBEAT TEST
+// ============================================================
+
+function testNoiseMapHeartbeat() {
+  const secret = PropertiesService
+    .getScriptProperties()
+    .getProperty("NM_DEVICE_SECRET");
+
+  if (!secret) {
+    throw new Error("Device secret is missing.");
+  }
+
+  const payload = {
+    api_key: secret,
+    event: "heartbeat",
+    device_id: "NM-TEST-02",
+    location_id: "0i9ooc76D88nsqzsX6YU",
+    firmware_version: "backend-only-test"
+  };
+
+  const response = UrlFetchApp.fetch(
+    NM_WEB_APP_URL,
+    {
+      method: "post",
+      contentType: "application/json",
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    }
+  );
+
+  Logger.log(
+    "HTTP: " + response.getResponseCode()
+  );
+
+  Logger.log(response.getContentText());
+}
+
+
+// ============================================================
+// 13. ALERT QUIET-PERIOD CHECK
+// ============================================================
+
+function nmCheckQuietPeriod(
+  alertFields,
+  observations,
+  now
+) {
+  const alertCreated = nmGetTimestamp(
+    alertFields,
+    "createdAt"
+  );
+
+  if (alertCreated === null) {
+    return {
+      resolved: false,
+      reason: "Alert creation time is missing."
+    };
+  }
+
+  const deviceId = nmGetString(
+    alertFields,
+    "deviceId",
+    ""
+  );
+
+  const readings = observations
+    .filter(function(doc) {
+      const fields = doc.fields || {};
+
+      return (
+        nmGetString(fields, "source", "") === NM_HARDWARE_SOURCE &&
+        nmGetString(fields, "deviceId", "") === deviceId &&
+        (!fields.isSimulated ||
+          fields.isSimulated.booleanValue !== true) &&
+        nmGetTimestamp(fields, "timestamp") !== null
+      );
+    })
+    .map(function(doc) {
+      const fields = doc.fields || {};
+
+      return {
+        timestamp: nmGetTimestamp(
+          fields,
+          "timestamp"
+        ),
+        status: nmGetString(
+          fields,
+          "status",
+          ""
+        )
+      };
+    })
+    .filter(function(reading) {
+      return (
+        reading.timestamp >= alertCreated &&
+        reading.timestamp <= now
+      );
+    })
+    .sort(function(a, b) {
+      return a.timestamp - b.timestamp;
+    });
+
+  if (readings.length === 0) {
+    return {
+      resolved: false,
+      reason: "No real readings after alert creation."
+    };
+  }
+
+  const latest = readings[readings.length - 1];
+
+  if (
+    now - latest.timestamp >
+    NM_MAX_READING_GAP_SECONDS * 1000
+  ) {
+    return {
+      resolved: false,
+      reason: "Latest reading is stale."
+    };
+  }
+
+  if (latest.status !== "NORMAL") {
+    return {
+      resolved: false,
+      reason: "Latest reading is not NORMAL."
+    };
+  }
+
+  let quietStart = null;
+  let previousTime = null;
+  let normalCount = 0;
+
+  readings.forEach(function(reading) {
+    if (reading.status !== "NORMAL") {
+      quietStart = null;
+      previousTime = null;
+      normalCount = 0;
+      return;
+    }
+
+    if (
+      previousTime !== null &&
+      reading.timestamp - previousTime >
+        NM_MAX_READING_GAP_SECONDS * 1000
+    ) {
+      quietStart = null;
+      normalCount = 0;
+    }
+
+    if (quietStart === null) {
+      quietStart = reading.timestamp;
+      normalCount = 0;
+    }
+
+    normalCount++;
+    previousTime = reading.timestamp;
   });
-  props.setProperty(key, String(now.getTime()));
+
+  if (
+    quietStart === null ||
+    previousTime === null
+  ) {
+    return {
+      resolved: false,
+      reason: "No continuous normal-reading sequence."
+    };
+  }
+
+  const quietDuration = previousTime - quietStart;
+
+  if (
+    quietDuration >=
+      NM_QUIET_PERIOD_MINUTES * 60 * 1000 &&
+    normalCount >= NM_MIN_NORMAL_READINGS
+  ) {
+    return {
+      resolved: true,
+      reason:
+        "10 minutes of continuous normal readings.",
+      normalCount: normalCount,
+      quietDurationMinutes:
+        quietDuration / 60000
+    };
+  }
+
+  return {
+    resolved: false,
+    reason:
+      "Quiet period or reading count insufficient.",
+    normalCount: normalCount
+  };
 }
 
-function sendIncidentEmail(data, classroomName, now) {
-  const alertId = data.device_id + "_" + data.episode_id;
+
+// ============================================================
+// 14. ALERT EMAIL
+// ============================================================
+
+function nmSendAlertEmail(
+  alertId,
+  fields,
+  properties
+) {
+  const sentKey = "NM_EMAIL_SENT_" + alertId;
+
+  if (properties.getProperty(sentKey) === "yes") {
+    return false;
+  }
+
+  const locationId = nmGetString(
+    fields,
+    "locationId",
+    "Unknown"
+  );
+
+  const deviceId = nmGetString(
+    fields,
+    "deviceId",
+    "Unknown"
+  );
+
+  const warningCount = nmGetInteger(
+    fields,
+    "warningCount",
+    0
+  );
+
+  const message = nmGetString(
+    fields,
+    "message",
+    "Noise threshold exceeded."
+  );
+
+  MailApp.sendEmail({
+    to: NM_RECIPIENT,
+    subject: "NoiseMap - Noise Alert",
+    body:
+      "NoiseMap has recorded a noise alert.\n\n" +
+      "Location ID: " + locationId + "\n" +
+      "Device ID: " + deviceId + "\n" +
+      "Warning count: " + warningCount + "\n" +
+      "Message: " + message + "\n\n" +
+      "Alert ID: " + alertId + "\n\n" +
+      "Team Fearless | NoiseMap"
+  });
+
+  properties.setProperty(sentKey, "yes");
+
+  Logger.log("Alert email sent: " + alertId);
+
+  return true;
+}
+
+
+// ============================================================
+// 15. RESOLVE FIRESTORE ALERT
+// ============================================================
+
+function nmResolveFirestoreAlert(
+  alertId,
+  reason
+) {
+  const now = new Date().toISOString();
+
+  const url =
+    nmBaseUrl() +
+    "/alerts/" +
+    encodeURIComponent(alertId) +
+    "?updateMask.fieldPaths=status" +
+    "&updateMask.fieldPaths=resolvedAt" +
+    "&updateMask.fieldPaths=resolutionReason";
+
+  const fields = {
+    status: {
+      stringValue: "resolved"
+    },
+    resolvedAt: {
+      timestampValue: now
+    },
+    resolutionReason: {
+      stringValue: reason
+    }
+  };
+
+  nmFirestoreWrite(
+    "patch",
+    url,
+    { fields: fields }
+  );
+
+  Logger.log(
+    "Alert automatically resolved: " + alertId
+  );
+}
+
+
+// ============================================================
+// 16. LIVE ALERT MONITORING
+// EMAIL + AUTOMATIC RESOLUTION
+// NO ACTION TRACKER ENTRY
+// ============================================================
+
+function pollNoiseMapAlerts() {
   const lock = LockService.getScriptLock();
-  lock.waitLock(15000);
+
+  if (!lock.tryLock(10000)) {
+    Logger.log(
+      "Another monitoring run is active."
+    );
+    return;
+  }
+
   try {
-    const existing = getDocument("alerts", alertId);
-    if (!existing) {
-      createDocument("alerts", alertId, {
-        locationId: stringValue(data.location_id),
-        classroomName: stringValue(classroomName),
-        deviceId: stringValue(data.device_id),
-        rawAdc: integerValue(data.raw_adc),
-        thresholdAdc: integerValue(data.threshold_adc),
-        warningCount: integerValue(3),
-        status: stringValue("open"),
-        source: stringValue(SOURCE),
-        episodeId: stringValue(data.episode_id),
-        createdAt: timestampValue(now),
-        emailStatus: stringValue("pending")
-      });
-    }
+    const properties =
+      PropertiesService.getScriptProperties();
 
-    const current = getDocument("alerts", alertId);
-    const currentStatus = readString(current && current.fields, "emailStatus");
-    const sentKey = "sent_" + alertId;
-    const props = PropertiesService.getScriptProperties();
-    if (currentStatus === "sent") return "sent";
-    if (props.getProperty(sentKey) === "yes") {
-      patchDocument("alerts", alertId, {
-        emailStatus: stringValue("sent"),
-        emailTo: stringValue(ALERT_EMAIL_TO),
-        emailSentAt: timestampValue(new Date())
-      });
-      props.deleteProperty(sentKey);
-      return "sent";
-    }
+    const alerts = nmReadCollection("alerts");
+    const observations =
+      nmReadCollection("observations");
 
-    const timeText = Utilities.formatDate(now, "Asia/Kolkata", "dd MMM yyyy, hh:mm:ss a");
-    const subject = "NoiseMap alert: " + classroomName + " crossed its noise threshold";
-    const body = [
-      "NoiseMap automatic staffroom alert",
-      "Room: " + classroomName,
-      "Sensor: " + data.device_id,
-      "Raw ADC reading: " + data.raw_adc,
-      "Configured threshold: " + data.threshold_adc + " ADC",
-      "Warnings: 3 of 3",
-      "Time (IST): " + timeText,
-      "Incident: " + data.episode_id,
-      "",
-      "This is a prototype raw-ADC threshold alert, not a calibrated dB(A) measurement."
-    ].join("\n");
-    const htmlBody =
-      "<h2>NoiseMap automatic staffroom alert</h2>" +
-      "<p><b>Room:</b> " + escapeHtml(classroomName) + "</p>" +
-      "<p><b>Sensor:</b> " + escapeHtml(data.device_id) + "</p>" +
-      "<p><b>Raw ADC reading:</b> " + data.raw_adc + "</p>" +
-      "<p><b>Configured threshold:</b> " + data.threshold_adc + " ADC</p>" +
-      "<p><b>Warnings:</b> 3 of 3</p>" +
-      "<p><b>Time (IST):</b> " + escapeHtml(timeText) + "</p>" +
-      "<p><b>Incident:</b> " + escapeHtml(data.episode_id) + "</p>" +
-      "<p>This is a prototype raw-ADC threshold alert, not a calibrated dB(A) measurement.</p>";
+    let emails = 0;
+    let resolved = 0;
 
-    MailApp.sendEmail({
-      to: ALERT_EMAIL_TO,
-      subject: subject,
-      body: body,
-      htmlBody: htmlBody,
-      name: "NoiseMap Alerts"
+    alerts.forEach(function(alert) {
+      const fields = alert.fields || {};
+
+      if (
+        nmGetString(fields, "source", "") !== NM_HARDWARE_SOURCE ||
+        (fields.isSimulated && fields.isSimulated.booleanValue === true) ||
+        nmGetString(fields, "status", "") !== "open" ||
+        Number(
+          fields.warningCount
+            ? fields.warningCount.integerValue
+            : 0
+        ) < 3
+      ) {
+        return;
+      }
+
+      const alertId =
+        alert.name.split("/").pop();
+
+      try {
+        const sentKey =
+          "NM_EMAIL_SENT_" + alertId;
+
+        if (
+          properties.getProperty(sentKey) !== "yes"
+        ) {
+          nmSendAlertEmail(
+            alertId,
+            fields,
+            properties
+          );
+
+          emails++;
+        }
+
+        const result = nmCheckQuietPeriod(
+          fields,
+          observations,
+          Date.now()
+        );
+
+        if (result.resolved) {
+          nmResolveFirestoreAlert(
+            alertId,
+            result.reason
+          );
+
+          resolved++;
+        } else {
+          Logger.log(
+            "Alert remains open: " +
+            alertId +
+            " | " +
+            result.reason
+          );
+        }
+
+      } catch (error) {
+        Logger.log(
+          "Alert processing error " +
+          alertId +
+          ": " +
+          error.message
+        );
+      }
     });
-    // Persist the send marker before updating Firestore so a retry cannot send twice.
-    props.setProperty(sentKey, "yes");
-    patchDocument("alerts", alertId, {
-      emailStatus: stringValue("sent"),
-      emailTo: stringValue(ALERT_EMAIL_TO),
-      emailSentAt: timestampValue(new Date())
-    });
-    props.deleteProperty(sentKey);
-    return "sent";
-  } catch (error) {
-    try {
-      patchDocument("alerts", alertId, {
-        emailStatus: stringValue("failed"),
-        emailError: stringValue(String(error.message || error).slice(0, 400)),
-        emailAttemptedAt: timestampValue(new Date())
-      });
-    } catch (ignored) {}
-    throw error;
+
+    Logger.log("Monitoring completed.");
+    Logger.log("New alert emails sent: " + emails);
+    Logger.log("Alerts resolved: " + resolved);
+    Logger.log(
+      "Automatic Action Tracker creation: DISABLED."
+    );
+
   } finally {
     lock.releaseLock();
   }
 }
 
-function readString(fields, key) {
-  return fields && fields[key] && fields[key].stringValue
-    ? fields[key].stringValue : "";
+
+// ============================================================
+// 17. FIVE-MINUTE MONITORING TRIGGER
+// RUN ONLY IF THE EXISTING TRIGGER IS MISSING
+// ============================================================
+
+function installNoiseMapFiveMinuteTrigger() {
+  const handler = "pollNoiseMapAlerts";
+
+  ScriptApp.getProjectTriggers().forEach(
+    function(trigger) {
+      if (
+        trigger.getHandlerFunction() === handler
+      ) {
+        ScriptApp.deleteTrigger(trigger);
+      }
+    }
+  );
+
+  ScriptApp.newTrigger(handler)
+    .timeBased()
+    .everyMinutes(5)
+    .create();
+
+  Logger.log(
+    "NoiseMap five-minute trigger installed."
+  );
 }
 
-function stringValue(value) {
-  return { stringValue: String(value) };
+
+// ============================================================
+// 18. SIMULATOR HELPERS
+// ============================================================
+
+function nmSimulatorWriteObservation(
+  deviceId,
+  locationId,
+  status,
+  timestamp
+) {
+  const observationId = Utilities.getUuid();
+
+  const fields = {
+    deviceId: { stringValue: deviceId },
+    locationId: { stringValue: locationId },
+    timestamp: {
+      timestampValue: new Date(timestamp).toISOString()
+    },
+    createdAt: {
+      timestampValue: new Date(timestamp).toISOString()
+    },
+    rawValue: {
+      integerValue: status === "NORMAL" ? "100" : "800"
+    },
+    measurementType: {
+      stringValue: "raw_adc"
+    },
+    unit: {
+      stringValue: "ADC (0-1023)"
+    },
+    status: {
+      stringValue: status
+    },
+    warningCount: {
+      integerValue: status === "NORMAL" ? "0" : "3"
+    },
+    source: {
+      stringValue: NM_SIMULATOR_SOURCE
+    },
+    isSimulated: {
+      booleanValue: true
+    },
+    firmwareVersion: {
+      stringValue: "noise-map-simulator"
+    }
+  };
+
+  nmFirestoreWrite(
+    "patch",
+    nmBaseUrl() +
+    "/observations/" +
+    observationId,
+    { fields: fields }
+  );
+
+  return observationId;
 }
 
-function integerValue(value) {
-  return { integerValue: String(value) };
+function nmSimulatorCreateAlert(
+  deviceId,
+  locationId,
+  timestamp
+) {
+  const alertId = Utilities.getUuid();
+
+  const fields = {
+    deviceId: { stringValue: deviceId },
+    locationId: { stringValue: locationId },
+    source: { stringValue: NM_SIMULATOR_SOURCE },
+    status: { stringValue: "open" },
+    createdAt: {
+      timestampValue: new Date(timestamp).toISOString()
+    },
+    timestamp: {
+      timestampValue: new Date(timestamp).toISOString()
+    },
+    warningCount: {
+      integerValue: "3"
+    },
+    message: {
+      stringValue: "SIMULATED TEST ALERT - NOT A REAL NOISE EVENT"
+    },
+    isSimulated: {
+      booleanValue: true
+    }
+  };
+
+  nmFirestoreWrite(
+    "patch",
+    nmBaseUrl() +
+    "/alerts/" +
+    alertId,
+    { fields: fields }
+  );
+
+  return alertId;
 }
 
-function timestampValue(value) {
-  return { timestampValue: value.toISOString() };
-}
 
+// ============================================================
+// 19. SIMULATOR TESTS
+// ============================================================
 
-function escapeHtml(value) {
-  return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
+function testNoiseMapSimulator() {
+  const deviceId = "NM-SIM-01";
+  const locationId = "gMTrMgyC4AFPIxW0Qv";
 
-function constantTimeEqual(a, b) {
-  if (a.length !== b.length) return false;
-  let difference = 0;
-  for (let i = 0; i < a.length; i++) {
-    difference |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  const now = Date.now();
+
+  Logger.log("Starting NoiseMap simulator test.");
+
+  // Test 1: create alert
+  const alertId = nmSimulatorCreateAlert(
+    deviceId,
+    locationId,
+    now - 11 * 60 * 1000
+  );
+
+  Logger.log("Test alert created: " + alertId);
+
+  // Test 2: generate normal readings
+  for (let i = 0; i < 60; i++) {
+    nmSimulatorWriteObservation(
+      deviceId,
+      locationId,
+      "NORMAL",
+      now - (60 - i) * 10000
+    );
   }
-  return difference === 0;
+
+  Logger.log("60 simulated normal readings created.");
+
+  // Test 3: run quiet-period logic
+  const alertResponse = UrlFetchApp.fetch(
+    nmBaseUrl() + "/alerts/" + alertId,
+    {
+      method: "get",
+      headers: nmHeaders(),
+      muteHttpExceptions: true
+    }
+  );
+
+  if (alertResponse.getResponseCode() !== 200) {
+    throw new Error("Could not read simulator alert.");
+  }
+
+  const alert = JSON.parse(
+    alertResponse.getContentText()
+  );
+
+  const observations =
+    nmReadCollection("observations");
+
+  const result = nmCheckQuietPeriod(
+    alert.fields || {},
+    observations,
+    Date.now()
+  );
+
+  Logger.log(
+    "Quiet-period test result: " +
+    JSON.stringify(result)
+  );
+
+  Logger.log("Simulator test completed.");
 }
 
-function jsonOutput(value, statusCode) {
-  // Apps Script ContentService does not expose a custom HTTP status setter.
-  // The body carries the authoritative ok/error result for the bridge.
-  return ContentService.createTextOutput(JSON.stringify(value))
-    .setMimeType(ContentService.MimeType.JSON);
+
+// ============================================================
+// 20. SIMULATOR CLEANUP / DIAGNOSTIC
+// ============================================================
+
+function diagnoseNoiseMapSimulatorData() {
+  const observations =
+    nmReadCollection("observations");
+
+  const alerts =
+    nmReadCollection("alerts");
+
+  const simulatedObservations =
+    observations.filter(function(doc) {
+      const fields = doc.fields || {};
+
+      return (
+        fields.isSimulated &&
+        fields.isSimulated.booleanValue === true
+      );
+    });
+
+  const simulatedAlerts =
+    alerts.filter(function(doc) {
+      const fields = doc.fields || {};
+
+      return (
+        fields.isSimulated &&
+        fields.isSimulated.booleanValue === true
+      );
+    });
+
+  Logger.log(
+    "Total observations: " + observations.length
+  );
+
+  Logger.log(
+    "Simulated observations: " +
+    simulatedObservations.length
+  );
+
+  Logger.log(
+    "Total alerts: " + alerts.length
+  );
+
+  Logger.log(
+    "Simulated alerts: " +
+    simulatedAlerts.length
+  );
 }
