@@ -80,12 +80,12 @@ Set these PowerShell variables for the current terminal session:
 $env:NOISEMAP_COM_PORT = "COM7"
 $env:NOISEMAP_BAUD = "9600"
 $env:NOISEMAP_APPS_SCRIPT_URL = "<your Apps Script /exec URL>"
-$env:NOISEMAP_DEVICE_SECRET = "<the same private token>"
+$env:NOISEMAP_DEVICE_SECRET = "<the existing NM_DEVICE_SECRET value>"
 $env:NOISEMAP_UPLOAD_INTERVAL_SECONDS = "10"
 py .\bridge\serial_to_cloud.py
 \`\`\`
 
-Replace COM7, the web app URL, and the token with your actual values. The bridge uploads normal observations every 10 seconds to keep usage controlled. It uploads \`staffroom_alert\` and \`warning_reset\` events immediately. Keep the bridge running while collecting data.
+Replace COM7 and the web app URL with your actual values; use the existing device secret copied from Apps Script. The bridge uploads normal observations every 10 seconds to keep usage controlled. It uploads \`staffroom_alert\` and \`warning_reset\` events immediately. Keep the bridge running while collecting data.
 
 ### 4. Register the hardware device and configure Arduino
 
@@ -103,7 +103,7 @@ Tune \`NOISE_THRESHOLD_ADC\` from observed raw readings in the intended environm
 
 ### 5. Test the email alert
 
-1. Confirm the Apps Script web app URL and shared token are configured on the bridge computer.
+1. Confirm the existing Apps Script web app URL and device secret are configured on the bridge computer.
 2. Confirm the device exists in Firestore and its \`locationId\` matches the Arduino sketch.
 3. Start the bridge and power the Arduino/HC-05 sensor.
 4. Create a sustained sensor reading above the configured threshold for three warning intervals.
