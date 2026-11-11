@@ -756,7 +756,7 @@
     };
     const latestForLocation = location => {
       const records = cachedObservations.filter(item => {
-        const device = cachedDevices.find(entry => entry.id === item.deviceId);
+        const device = cachedDevices.find(entry => entry.id === item.deviceId || entry.deviceId === item.deviceId);
         const recordLocationId = item.locationId || (device && device.locationId);
         return recordLocationId === location.id;
       }).sort((a, b) => timestampOf(b) - timestampOf(a));
@@ -880,7 +880,7 @@
     const devices = cachedDevices.filter(device => device.locationId === location.id);
     const observations = cachedObservations.filter(item => {
       if (item.locationId) return item.locationId === location.id;
-      return devices.some(device => device.id === item.deviceId);
+      return devices.some(device => observationMatchesDevice(item, device));
     }).sort((a,b) => (locationReadingDate(b)?.getTime() || 0) - (locationReadingDate(a)?.getTime() || 0));
     const selectedRange = locationHistoryRanges[location.id] || "all";
     const rangeCutoff = selectedRange === "all" ? 0 : Date.now() - Number(selectedRange) * 24 * 60 * 60 * 1000;
