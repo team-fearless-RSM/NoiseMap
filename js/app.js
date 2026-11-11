@@ -592,7 +592,7 @@
         readingsList.innerHTML = '<p class="dashboard-empty-text">No sensor readings recorded yet.</p>';
       } else {
         recentObservations.forEach(observation => {
-          const device = cachedDevices.find(item => item.id === observation.deviceId);
+          const device = cachedDevices.find(item => item.id === observation.deviceId || item.deviceId === observation.deviceId);
           const location = cachedLocations.find(item => item.id === observation.locationId) ||
             (device ? cachedLocations.find(item => item.id === device.locationId) : null);
           const raw = observation.rawValue ?? observation.rawAdc ?? observation.raw_adc;
@@ -1421,7 +1421,7 @@
 
     devices.forEach(device => {
       const location = cachedLocations.find(item => item.id === device.locationId);
-      const latest = cachedObservations.find(item => item.deviceId === device.id);
+      const latest = cachedObservations.find(item => item.deviceId === device.id || item.deviceId === device.deviceId);
       const raw = latest ? (latest.rawValue ?? latest.rawAdc ?? latest.raw_adc) : null;
       const timeValue = latest && (latest.timestamp || latest.createdAt);
       const readingDate = timeValue
@@ -1448,7 +1448,12 @@
         reading.textContent = raw === null || raw === undefined ? "—" : String(raw);
         const unit = document.createElement("span");
         unit.className = "device-monitor-unit";
-        unit.textContent = "RAW ADC · 0–1023";
+        const calibration = device.calibration;
+        const estimatedDb = calibration && raw !== null && raw !== undefined
+          ? estimateDbFromCalibration(Number(raw), calibration) : null;
+        unit.textContent = estimatedDb === null
+          ? "RAW ADC · 0–1023"
+          : "RAW ADC · ~" + estimatedDb.toFixed(1) + " dB SPL estimate (unverified)";
         const locationText = document.createElement("p");
         locationText.className = "device-monitor-meta";
         locationText.textContent = "Location: " + (location ? location.name : "Not linked");
@@ -1462,6 +1467,14 @@
         hardware.className = "device-monitor-meta";
         hardware.textContent = "Hardware: " + (device.hardware || "Not specified");
         card.append(top, reading, unit, locationText, lastSeen, heartbeatMeta, hardware);
+        if (canManageRecords) {
+          const calibrate = document.createElement("button");
+          calibrate.type = "button";
+          calibrate.className = "calibration-open-button";
+          calibrate.textContent = calibration ? "Edit calibration" : "Set 2-point calibration";
+          calibrate.addEventListener("click", () => openCalibrationDialog(device));
+          card.appendChild(calibrate);
+        }
         monitorGrid.appendChild(card);
       }
 
@@ -1479,9 +1492,91 @@
       String(device.connectionStatus || "").toLowerCase() !== "planned"
     ).length - recentCount);
     if (noteEl) noteEl.textContent = devices.length
-      ? "Online means an authenticated heartbeat reached Apps Script within the last 2 minutes. A missing or stale heartbeat is Offline. Last-reading time is shown separately. ADC values are raw readings, not dB/dB(A)."
+      ? "Online means an authenticated heartbeat reached the ingestion service within the last 2 minutes. A missing or stale heartbeat is Offline. Last-reading time is shown separately. ADC values are raw readings, not dB/dB(A)."
       : "No devices are registered yet. Add a device below to begin tracking its connection status.";
     populateDeviceSelects(devices);
+    renderExposureEstimate();
+  }
+
+  function observationMatchesDevice(observation, device) {
+    return Boolean(observation && device &&
+      (observation.deviceId === device.id || observation.deviceId === device.deviceId));
+  }
+
+  function estimateDbFromCalibration(rawAdc, calibration) {
+    if (!calibration || !Number.isFinite(rawAdc) || rawAdc <= 0) return null;
+    const a1 = Number(calibration.adc1), a2 = Number(calibration.adc2);
+    const d1 = Number(calibration.db1), d2 = Number(calibration.db2);
+    if (![a1, a2, d1, d2].every(Number.isFinite) || a1 <= 0 || a2 <= 0 ||
+        a1 === a2 || d1 === d2 || rawAdc < Math.min(a1, a2) || rawAdc > Math.max(a1, a2)) return null;
+    return d1 + (d2 - d1) * (Math.log(rawAdc / a1) / Math.log(a2 / a1));
+  }
+
+  function openCalibrationDialog(device) {
+    const dialog = document.getElementById("calibrationDialog");
+    if (!dialog || !canManageRecords) return;
+    const calibration = device.calibration || {};
+    document.getElementById("calibrationDeviceDocId").value = device.id;
+    document.getElementById("calibrationDeviceLabel").textContent = device.deviceId || device.id;
+    document.getElementById("calibrationAdc1").value = calibration.adc1 ?? "";
+    document.getElementById("calibrationDb1").value = calibration.db1 ?? "";
+    document.getElementById("calibrationAdc2").value = calibration.adc2 ?? "";
+    document.getElementById("calibrationDb2").value = calibration.db2 ?? "";
+    document.getElementById("calibrationReference").value = calibration.referenceInstrument || "";
+    document.getElementById("calibrationStatus").textContent = "";
+    dialog.showModal();
+  }
+
+  function renderExposureEstimate() {
+    const host = document.getElementById("exposureEstimateList");
+    if (!host) return;
+    host.replaceChildren();
+    const calibrated = cachedDevices.filter(device => device.calibration);
+    if (!calibrated.length) {
+      const empty = document.createElement("p");
+      empty.className = "dashboard-empty-text";
+      empty.textContent = "No device has an experimental two-point calibration yet.";
+      host.appendChild(empty);
+      return;
+    }
+    const now = Date.now();
+    const start = now - 45 * 60 * 1000;
+    calibrated.forEach(device => {
+      const samples = cachedObservations.filter(item => {
+        if (item.isSimulated === true || item.source !== "arduino_uno_hc05" ||
+            !observationMatchesDevice(item, device)) return false;
+        const value = item.timestamp || item.createdAt;
+        const date = value && typeof value.toDate === "function" ? value.toDate() : new Date(value);
+        return !Number.isNaN(date.getTime()) && date.getTime() >= start && date.getTime() <= now;
+      }).map(item => {
+        const value = item.timestamp || item.createdAt;
+        const date = value && typeof value.toDate === "function" ? value.toDate() : new Date(value);
+        const raw = Number(item.rawValue ?? item.rawAdc ?? item.raw_adc);
+        return { time: date.getTime(), db: estimateDbFromCalibration(raw, device.calibration) };
+      }).filter(item => item.db !== null).sort((a,b) => a.time - b.time);
+      let coveredMs = 0, energySeconds = 0;
+      for (let i = 0; i < samples.length - 1; i++) {
+        const seconds = (samples[i + 1].time - samples[i].time) / 1000;
+        if (seconds <= 0 || seconds > 15) continue;
+        coveredMs += seconds * 1000;
+        energySeconds += Math.pow(10, samples[i].db / 10) * seconds;
+      }
+      const coverage = Math.min(100, coveredMs / (45 * 60 * 1000) * 100);
+      const enough = coverage >= 80 && energySeconds > 0;
+      const row = document.createElement("article");
+      row.className = "exposure-estimate-row";
+      const name = document.createElement("strong");
+      name.textContent = device.deviceId || "Unnamed device";
+      const result = document.createElement("span");
+      result.textContent = enough
+        ? "Estimated Leq: " + (10 * Math.log10(energySeconds / (coveredMs / 1000))).toFixed(1) + " dB SPL"
+        : "Insufficient continuous data · " + coverage.toFixed(0) + "% coverage";
+      const detail = document.createElement("small");
+      detail.textContent = samples.length + " calibrated physical samples · " + coverage.toFixed(0) +
+        "% coverage · reference: " + (device.calibration.referenceInstrument || "not recorded");
+      row.append(name, result, detail);
+      host.appendChild(row);
+    });
   }
 
   function populateHistoryLocationFilter(locations) {
