@@ -9,6 +9,14 @@ function doGet() {
   return jsonOutput({ ok: true, service: "NoiseMap Apps Script bridge" });
 }
 
+function authorizeServices() {
+  const token = ScriptApp.getOAuthToken();
+  const remainingEmailQuota = MailApp.getRemainingDailyQuota();
+  const request = UrlFetchApp.getRequest(FIRESTORE_BASE);
+  if (!token || !request) throw new Error("Apps Script authorisation is incomplete");
+  Logger.log("NoiseMap bridge authorised. Remaining daily email recipients: " + remainingEmailQuota);
+}
+
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
