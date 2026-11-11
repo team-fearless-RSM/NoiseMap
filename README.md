@@ -137,8 +137,8 @@ The repository's Pages workflow deploys the static website only. It does not dep
 
 ## Multi-room Wi-Fi demo preview
 
-Open **Simulation Lab** from the main NoiseMap sidebar (or the top-bar shortcut) to explore an in-site browser-only multi-room simulation. It shows four example rooms, ESP8266-style device identities, illustrative raw ADC readings, trends, and a simulated incident feed. Controls pause the simulation, create a sample spike, or reset the values.
+Use **Devices → Sensor simulator** while signed in as an authorised Team Fearless member to generate test observations for one registered device or all registered devices. Each test observation is written to the same Firestore `observations` collection used by the monitoring dashboard and is marked `source: "browser_simulator"` and `isSimulated: true`. Automatic test mode writes a reading for each selected device every five seconds.
 
-**The in-site simulation does not connect to sensors, Wi-Fi devices, Apps Script, or Firestore.** It does not save records or send email. All displayed values and incidents are generated locally in the browser and must not be presented as real measurements.
+**Live Monitoring uses these saved test observations in its main trend, latest-reading list, location comparison, overview and room floorplan.** Test points and rows are explicitly labelled TEST. This exercises the Firestore-to-dashboard integration and multi-device room presentation, but does not connect a physical sensor, create a hardware heartbeat, trigger the hardware alert pipeline, or provide environmental evidence. The Staffroom Audio Monitor continues to ignore simulated readings. Raw ADC values are not calibrated dB or dB(A).
 
 The intended future hardware direction is one ESP8266 per room sending observations over school Wi-Fi to the existing NoiseMap backend. The live hardware ingestion path remains the Uno + HC-05 implementation until ESP8266 firmware and authenticated ingestion are implemented and tested.
