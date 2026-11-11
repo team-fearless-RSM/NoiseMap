@@ -24,10 +24,11 @@ jobs:
 
       - name: Prepare static website
         run: |
-          mkdir -p _site/css _site/js
-          cp index.html _site/
+          mkdir -p _site/css _site/js _site/icons
+          cp index.html manifest.json service-worker.js _site/
           cp css/style.css _site/css/
-          cp js/app.js js/firebase.js _site/js/
+          cp js/*.js _site/js/
+          cp icons/noisemap.svg _site/icons/
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
