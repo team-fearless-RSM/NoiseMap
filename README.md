@@ -94,6 +94,26 @@ py .\bridge\serial_to_cloud.py
 
 Replace COM7 and both placeholders with the actual values. Keep the bridge running while collecting data. Never commit the token or a local environment file.
 
+### 6. Automatic email after three sensor warnings
+
+A real authenticated Uno/HC-05 incident creates an `alerts/{alertId}` document when the firmware reports `warning_count: 3`. The `emailHardwareStaffroomAlert` Firestore trigger then sends one email to `guruprasad.kothavale@iteachschools.org` through Resend. Simulator and manually created alerts are ignored. The alert record stores the email delivery status.
+
+For the initial test, the sender is Resend's shared test sender (`NoiseMap Alerts <onboarding@resend.dev>`). Resend's test sender is restricted to recipient addresses verified in your Resend account. Verify the destination address there first. For ongoing production use, verify a domain you control in Resend and change `ALERT_EMAIL_FROM` in `functions/index.js` to an address on that domain.
+
+Create a Resend account and an API key, then from the repository root run:
+
+```powershell
+firebase functions:secrets:set RESEND_API_KEY
+```
+
+Paste the API key into the terminal prompt when asked. **Do not paste it into chat, source code, GitHub, or the website.** Then deploy the Functions:
+
+```powershell
+firebase deploy --only functions
+```
+
+The API key is stored as a Firebase Secret and is only exposed to the email-trigger function. The email is sent only for a hardware alert with three warnings; Resend's idempotency key prevents duplicate delivery if the trigger retries. The email reports the raw ADC reading and configured ADC threshold, not calibrated dB(A).
+
 ### 5. Staffroom browser audio alerts
 
 An authorised team member must sign in, open Staffroom Alerts, enable the audio toggle with a user gesture, and keep that page open. The monitor uses the configured raw-ADC threshold and sustained duration. It only evaluates fresh, consecutive, online readings from source `arduino_uno_hc05`; simulated records are excluded. Browser audio cannot play when the page is closed or suspended.
