@@ -98,7 +98,7 @@ window.NoiseAudio = (() => {
     const now = Date.now();
 
     // Do not treat simulated, manually entered, stale or offline data as live sensor input.
-    if (reading.source !== "esp8266" || reading.isOnline !== true ||
+    if (reading.source !== "arduino_uno_hc05" || reading.isOnline !== true ||
         !Number.isFinite(timestamp) || now - timestamp > MAX_READING_AGE_MS ||
         timestamp > now + 30000 || !Number.isFinite(adc) || adc < 0 || adc > 1023) {
       breachTracker.delete(locationId);
