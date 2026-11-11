@@ -1256,3 +1256,17 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 .audio-monitor-note{margin:.45rem 0 0;color:#94a3b8;font-size:.78rem;line-height:1.55}
 .staff-alert-detail .alert-source-tag{display:inline-block;margin-left:.35rem;color:#7dd3fc;font-size:.75rem;font-weight:700}
 @media(max-width:620px){.alert-settings-panel{padding:1rem}.alert-controls{width:100%;justify-content:space-between}.alert-threshold-row{gap:.85rem}.threshold-input-group{width:100%;justify-content:space-between}.threshold-input-group input,.threshold-input-group select{min-width:110px}}
+
+/* Historical Data CSV export controls */
+.history-controls-row{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:14px;margin:0 0 16px;padding:15px 17px}
+.history-filter-group{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.history-filter-group label{display:block;margin:0 0 6px;color:var(--muted);font-size:10px;font-weight:700}
+.history-filter-group select{min-width:150px;padding:9px 11px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);font:12px "DM Sans",sans-serif}
+.history-export-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.export-csv-button{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid rgba(255,255,255,.12);border-radius:7px;background:#0284c7;color:#fff;font:600 12px "DM Sans",sans-serif;cursor:pointer;transition:background .2s ease,transform .1s ease}
+.export-csv-button:hover{background:#0369a1}
+.export-csv-button:active{transform:translateY(1px)}
+.export-csv-button:disabled{background:#64748b;color:#e2e8f0;cursor:wait}
+.export-status{color:var(--muted);font:11px "DM Mono",monospace}
+.history-export-note{flex-basis:100%;margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+@media(max-width:600px){.history-controls-row{align-items:stretch}.history-filter-group,.history-filter-group>div,.history-export-actions{width:100%}.history-filter-group select{width:100%}.history-export-actions{align-items:flex-start;flex-direction:column}}
