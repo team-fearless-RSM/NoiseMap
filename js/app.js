@@ -86,7 +86,7 @@
     const latestByLocation = new Map();
     (items || []).forEach(observation => {
       if (!observation || observation.isSimulated === true || observation.source !== "arduino_uno_hc05") return;
-      const device = cachedDevices.find(entry => entry.id === observation.deviceId);
+      const device = cachedDevices.find(entry => entry.deviceId === observation.deviceId || entry.id === observation.deviceId);
       const locationId = observation.locationId || (device && device.locationId);
       const date = dashboardDate(observation.timestamp || observation.createdAt);
       if (!locationId || !date) return;
