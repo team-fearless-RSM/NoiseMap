@@ -1,7 +1,7 @@
-const CACHE_NAME = "noisemap-shell-v2";
+const CACHE_NAME = "noisemap-shell-v3";
 const APP_SHELL = [
   "./", "./index.html", "./manifest.json", "./icons/noisemap.svg",
-  "./css/style.css", "./js/app.js", "./js/firebase.js", "./js/multiroom-simulator.js",
+  "./css/style.css", "./js/app.js", "./js/firebase.js",
   "./js/audio-alerts.js", "./js/export-csv.js"
 ];
 self.addEventListener("install", event => {
