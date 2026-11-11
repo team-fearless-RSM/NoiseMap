@@ -1435,8 +1435,16 @@
         : null;
       const ageMs = readingDate && !Number.isNaN(readingDate.getTime()) ? now - readingDate.getTime() : Infinity;
       const heartbeat = getDeviceHeartbeatState(device, now);
+      const simulatorSelect = document.getElementById("simulatorDevice");
+      const simulatorTargetsAll = Boolean(simulatorInterval && simulatorSelect && simulatorSelect.value === "all");
+      const simulatorTargetsThis = Boolean(simulatorInterval && simulatorSelect &&
+        (simulatorTargetsAll || simulatorSelect.value === device.id));
       const isRecent = heartbeat.online;
       if (isRecent) recentCount++;
+      const displayStatus = simulatorTargetsThis ? "TEST ACTIVE" : heartbeat.label;
+      const displayDetail = simulatorTargetsThis
+        ? "Automatic simulator is sending test readings every 5 seconds. This is not a physical hardware heartbeat."
+        : heartbeat.detail;
 
       if (monitorGrid) {
         const card = document.createElement("article");
@@ -1446,8 +1454,8 @@
         const name = document.createElement("h3");
         name.textContent = device.deviceId || "Unnamed device";
         const status = document.createElement("span");
-        status.className = "device-monitor-status " + (isRecent ? "is-online" : "is-offline");
-        status.textContent = heartbeat.label;
+        status.className = "device-monitor-status " + ((isRecent || simulatorTargetsThis) ? "is-online" : "is-offline");
+        status.textContent = displayStatus;
         top.append(name, status);
         const reading = document.createElement("div");
         reading.className = "device-monitor-reading";
@@ -1468,7 +1476,7 @@
         lastSeen.textContent = "Last reading: " + (latest ? formatAlertTime(timeValue) : "No reading recorded");
         const heartbeatMeta = document.createElement("p");
         heartbeatMeta.className = "device-monitor-meta";
-        heartbeatMeta.textContent = heartbeat.detail;
+        heartbeatMeta.textContent = displayDetail;
         const hardware = document.createElement("p");
         hardware.className = "device-monitor-meta";
         hardware.textContent = "Hardware: " + (device.hardware || "Not specified");
@@ -1479,7 +1487,7 @@
       list.appendChild(recordCard(
         device.deviceId || "Unnamed device",
         device.hardware || "Hardware not specified",
-        "Location: " + (location ? location.name : "Not linked") + " · Connection: " + heartbeat.label + " · " + heartbeat.detail + " · Firestore document ID: " + device.id,
+        "Location: " + (location ? location.name : "Not linked") + " · Connection: " + displayStatus + " · " + displayDetail + " · Firestore document ID: " + device.id,
         "Device", device.id
       ));
     });
@@ -1827,13 +1835,15 @@
     if (start) start.disabled = false;
     if (stop) stop.disabled = true;
     if (message) setSimulatorStatus(message);
+    renderDevices(cachedDevices);
   }
 
   function startSensorSimulator() {
     if (!canManageRecords || simulatorInterval) return;
     const select = document.getElementById("simulatorDevice");
-    if (!select || !(select.value === "all" ? cachedDevices.length > 0 : cachedDevices.some(item => item.id === select.value))) {
-      setSimulatorStatus("Please select a registered device or All registered devices first.");
+    if (select && cachedDevices.length > 1) select.value = "all";
+    if (!select || !cachedDevices.length) {
+      setSimulatorStatus("No registered devices found. Add devices before starting the automatic test.");
       return;
     }
     simulatorSessionId = "sim_" + Date.now();
@@ -1842,9 +1852,10 @@
     const stop = document.getElementById("simulatorStop");
     if (start) start.disabled = true;
     if (stop) stop.disabled = false;
-    setSimulatorStatus("Automatic test running. A labelled test reading will be saved for each selected device every 5 seconds.");
-    createSimulatedReading();
+    setSimulatorStatus("Automatic test running for ALL " + cachedDevices.length + " registered device(s). Each device receives a test reading every 5 seconds.");
     simulatorInterval = setInterval(createSimulatedReading, 5000);
+    renderDevices(cachedDevices);
+    createSimulatedReading();
   }
 
   const simulatorOneButton = document.getElementById("simulatorOneReading");
