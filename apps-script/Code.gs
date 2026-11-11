@@ -724,41 +724,84 @@ function doPost(e) {
         );
       }
 
-      const alertId = Utilities.getUuid();
-      const now = new Date().toISOString();
+      const warningCount = Number(data.warning_count || 0);
+      const episodeId = String(data.episode_id || "").trim();
 
-      const alertFields = {
-        deviceId: { stringValue: deviceId },
-        locationId: { stringValue: locationId },
-        source: { stringValue: NM_HARDWARE_SOURCE },
-        status: { stringValue: "open" },
-        createdAt: { timestampValue: now },
-        timestamp: { timestampValue: now },
-        warningCount: {
-          integerValue: String(
-            Number(data.warning_count || 0)
-          )
-        },
-        message: {
-          stringValue: String(
-            data.message || "Noise threshold exceeded."
-          )
+      if (
+        warningCount !== 3 ||
+        !/^[A-Za-z0-9_-]{6,64}$/.test(episodeId)
+      ) {
+        throw new Error(
+          "Staffroom alert requires warning_count=3 and a valid episode_id."
+        );
+      }
+
+      // Deterministic ID makes bridge retries idempotent for one noise episode.
+      const alertId = deviceId + "_" + episodeId;
+      const alertUrl =
+        nmBaseUrl() + "/alerts/" + encodeURIComponent(alertId);
+      const lock = LockService.getScriptLock();
+
+      if (!lock.tryLock(10000)) {
+        throw new Error("Could not acquire alert-save lock. Retry the event.");
+      }
+
+      try {
+        const existingResponse = UrlFetchApp.fetch(alertUrl, {
+          method: "get",
+          headers: nmHeaders(),
+          muteHttpExceptions: true
+        });
+
+        if (existingResponse.getResponseCode() === 200) {
+          return nmJsonResponse({
+            ok: true,
+            message: "Staffroom alert was already saved.",
+            alert_id: alertId,
+            duplicate: true
+          });
         }
-      };
 
-      nmFirestoreWrite(
-        "patch",
-        nmBaseUrl() +
-        "/alerts/" +
-        alertId,
-        { fields: alertFields }
-      );
+        if (existingResponse.getResponseCode() !== 404) {
+          throw new Error(
+            "Could not check existing alert: " +
+            existingResponse.getContentText()
+          );
+        }
 
-      return nmJsonResponse({
-        ok: true,
-        message: "Staffroom alert saved.",
-        alert_id: alertId
-      });
+        const now = new Date().toISOString();
+        const alertFields = {
+          deviceId: { stringValue: deviceId },
+          locationId: { stringValue: locationId },
+          source: { stringValue: NM_HARDWARE_SOURCE },
+          status: { stringValue: "open" },
+          createdAt: { timestampValue: now },
+          timestamp: { timestampValue: now },
+          warningCount: { integerValue: "3" },
+          episodeId: { stringValue: episodeId },
+          isSimulated: { booleanValue: false },
+          message: {
+            stringValue: String(
+              data.message || "Noise threshold exceeded."
+            )
+          }
+        };
+
+        nmFirestoreWrite(
+          "patch",
+          alertUrl,
+          { fields: alertFields }
+        );
+
+        return nmJsonResponse({
+          ok: true,
+          message: "Staffroom alert saved.",
+          alert_id: alertId,
+          duplicate: false
+        });
+      } finally {
+        lock.releaseLock();
+      }
     }
 
 
