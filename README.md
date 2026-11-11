@@ -2,20 +2,21 @@
 
 **Team Fearless · NRL Changemakers**
 
-NoiseMap is a prototype for recording sound-sensor observations at selected locations, viewing patterns over time, and tracking follow-up actions. The current hardware path is **Arduino Uno + LM393 4-pin sound sensor + HC-05 Bluetooth**, with a paired-computer bridge forwarding readings to Firebase.
+NoiseMap is a prototype for recording sound-sensor observations at selected locations, viewing patterns over time, and tracking follow-up actions. The hardware path is **Arduino Uno + LM393 4-pin sound sensor + HC-05 Bluetooth**, with a paired computer running the Python bridge.
 
 ## Current implementation
 
 - Firebase web client and Firestore-backed dashboard.
-- Device registration in the `devices` collection and location assignment.
-- Authenticated HTTPS ingestion function: `ingestDeviceData`.
-- HC-05 serial-to-cloud bridge: `bridge/serial_to_cloud.py`.
-- Arduino firmware starter sketch: `hardware/arduino_uno_hc05.ino`.
-- Local device-token provisioning utility: `functions/scripts/provision-device.js`.
+- Device registration in the \`devices\` collection and location assignment.
+- Arduino Uno firmware: \`hardware/arduino_uno_hc05.ino\`.
+- HC-05 serial bridge: \`bridge/serial_to_cloud.py\`.
+- Google Apps Script backend: \`apps-script/Code.gs\`.
+- Firestore REST API writes for observations, device heartbeats, and hardware alerts.
+- Email sent by Google Apps Script MailApp after a real sensor incident reaches warning 3 of 3.
 - Browser Staffroom audio alerts for fresh, consecutive, authenticated Uno/HC-05 readings.
-- Simulator records are marked separately and excluded from live sensor alerts.
+- Simulator records remain separate from real hardware events.
 
-**Not yet verified on physical hardware:** the Uno/HC-05 firmware, Bluetooth COM-port bridge, deployed ingestion function, and a real end-to-end upload. A GitHub commit does not deploy Firebase Functions.
+The Apps Script path replaces the Firebase Cloud Functions ingestion and email-trigger path. It does not require Firebase Cloud Functions deployment or Firebase Secret Manager. Firestore remains the database.
 
 ## Measurement integrity
 
@@ -25,103 +26,121 @@ The LM393 module's analogue output is a raw ADC signal (0–1023), not calibrate
 
 1. LM393 AO connects to Arduino A0.
 2. Arduino sends newline-delimited JSON over HC-05 Bluetooth serial.
-3. A paired Windows/Linux computer runs `bridge/serial_to_cloud.py` and reads the HC-05 outgoing COM port.
-4. The bridge sends HTTPS requests with a bearer device token to `ingestDeviceData`.
-5. The function validates the token hash, registered device, assigned Firestore location, and payload before saving observations and updating the device heartbeat.
-6. The dashboard reads Firestore. The Staffroom audio monitor requires an authorised team session and a page that remains open.
+3. A paired Windows/Linux computer runs \`bridge/serial_to_cloud.py\` and reads the HC-05 outgoing COM port.
+4. The bridge forwards selected readings and all alert/reset events to a Google Apps Script web app using a private shared token.
+5. Apps Script validates the registered device and its assigned location, then writes observations and device heartbeats through the Firestore REST API.
+6. When a real hardware event arrives with \`event: "staffroom_alert"\` and \`warning_count: 3\`, Apps Script creates the Firestore alert and sends one email to \`guruprasad.kothavale@iteachschools.org\`.
+7. The dashboard continues reading the same Firestore collections.
 
-The Uno does not connect directly to the website. The paired computer and bridge must remain running for uploads.
+The Uno does not connect directly to the website. The paired computer, Bluetooth connection, and bridge must remain running for uploads.
 
-## Setup and deployment
+## Setup
 
-### 1. Firebase Functions
+### 1. Configure Google Cloud / Firestore access
 
-From the repository root, select the correct Firebase project if it is not already selected. Then:
+The Firebase project is \`noisemap-ead56\`. Firestore must already be enabled in this project.
 
-```powershell
-cd functions
-npm install
-cd ..
-firebase deploy --only functions
-```
+The Google account that owns/runs the Apps Script web app must have the **Cloud Datastore User** IAM role on this Google Cloud project. This lets the script use the Firestore REST API with its Google OAuth token. The script uses the \`datastore\` OAuth scope; it does not use a Firebase Admin service account key.
 
-Use the exact `ingestDeviceData` HTTPS URL printed by the Firebase CLI after deployment. Functions deployment is separate from GitHub Pages.
+Do not loosen Firestore Security Rules to make this work. The script uses Google identity/IAM for its Firestore REST requests; the public website continues to use the existing Firebase client and Security Rules.
 
-### 2. Provision a device credential
+### 2. Create the Apps Script project
 
-The device must already be registered in the NoiseMap dashboard and assigned to a Firestore location. The `deviceId` in the website must exactly match the ID in the Arduino sketch.
+1. Sign in to the Google account that should send the NoiseMap emails.
+2. Open [Google Apps Script](https://script.google.com/) and create a new standalone project named **NoiseMap Bridge**.
+3. Replace the contents of \`Code.gs\` with \`apps-script/Code.gs\` from this repository.
+4. In **Project Settings**, enable **Show "appsscript.json" manifest file in editor**.
+5. Replace the manifest contents with \`apps-script/appsscript.json\` from this repository.
+6. Save the project.
+7. In **Project Settings → Script Properties**, add:
+   - Property: \`NOISEMAP_WEBHOOK_TOKEN\`
+   - Value: a newly generated private token (instructions below). Do not put this value in GitHub or the website.
+8. In the editor, select \`doGet\` and click **Run** once. Approve the requested Google permissions for Firestore REST access, external requests, and sending email.
+9. Deploy → **New deployment** → type **Web app**:
+   - Execute as: **Me**
+   - Who has access: **Anyone**, if permitted by your Google Workspace administrator.
+10. Deploy and copy the Web app URL ending in \`/exec\`. If your school Workspace blocks public web apps, ask its administrator to allow this deployment before proceeding.
 
-Install Google Cloud CLI and authenticate locally with an account that has permission to write Firestore:
+The email is sent by the Google account that owns the deployment. The first test may be subject to Google Workspace administrator policies and Apps Script email quotas.
 
-```powershell
-gcloud auth application-default login
-cd functions
-npm install
-node .\scripts\provision-device.js NM-CLASS-01
-```
+### 3. Configure the bridge computer
 
-Replace `NM-CLASS-01` with the registered device ID. The script stores only a SHA-256 token hash in `deviceSecrets/{deviceId}` and prints the raw token once after saving. Copy it directly into the bridge computer's `NOISEMAP_DEVICE_TOKEN` environment variable. Do not put the token in Arduino firmware, browser code, GitHub, screenshots, or chat.
+Install dependencies:
 
-To invalidate an existing token and create a replacement, run the same command with `--rotate`. The old token stops working immediately.
-
-### 3. Arduino and sensor
-
-Open `hardware/arduino_uno_hc05.ino` in Arduino IDE. Replace:
-- `DEVICE_ID` with the exact registered device ID.
-- `LOCATION_ID` with the Firestore document ID of the assigned location.
-
-Wiring is documented at the top of the sketch. Important: Arduino D11 is 5V logic; connect it to HC-05 RX through a resistor voltage divider or level shifter. Do not connect Arduino TX directly to HC-05 RX. The sketch uses SoftwareSerial at 9600 baud for HC-05 and USB Serial at 9600 for diagnostics.
-
-Tune `NOISE_THRESHOLD_ADC` from observed raw readings in the intended environment. It is not a dB threshold. The sketch counts one warning after each five-second sustained high interval and sends a staffroom alert at the third warning.
-
-### 4. Run the computer bridge (Windows PowerShell)
-
-Pair the HC-05 in Windows Bluetooth settings and identify its **outgoing** Bluetooth COM port in Device Manager. Install dependencies:
-
-```powershell
+\`\`\`powershell
 py -m pip install pyserial requests
-```
+\`\`\`
 
-Set the values for the paired computer session:
+Generate a private webhook token locally:
 
-```powershell
+\`\`\`powershell
+py -c "import secrets; print(secrets.token_urlsafe(32))"
+\`\`\`
+
+Copy the generated value into the Apps Script Script Property \`NOISEMAP_WEBHOOK_TOKEN\`. Then set the same value in the bridge computer's environment. Do not send it in chat, commit it, or put it in Arduino firmware.
+
+Set these PowerShell variables for the current terminal session:
+
+\`\`\`powershell
 $env:NOISEMAP_COM_PORT = "COM7"
 $env:NOISEMAP_BAUD = "9600"
-$env:NOISEMAP_INGEST_URL = "<deployed ingestDeviceData HTTPS URL>"
-$env:NOISEMAP_DEVICE_TOKEN = "<token printed by the provisioning script>"
+$env:NOISEMAP_APPS_SCRIPT_URL = "<your Apps Script /exec URL>"
+$env:NOISEMAP_WEBHOOK_TOKEN = "<the same private token>"
+$env:NOISEMAP_UPLOAD_INTERVAL_SECONDS = "10"
 py .\bridge\serial_to_cloud.py
-```
+\`\`\`
 
-Replace COM7 and both placeholders with the actual values. Keep the bridge running while collecting data. Never commit the token or a local environment file.
+Replace COM7, the web app URL, and the token with your actual values. The bridge uploads normal observations every 10 seconds to keep usage controlled. It uploads \`staffroom_alert\` and \`warning_reset\` events immediately. Keep the bridge running while collecting data.
 
-### 6. Automatic email after three sensor warnings
+### 4. Register the hardware device and configure Arduino
 
-A real authenticated Uno/HC-05 incident creates an `alerts/{alertId}` document when the firmware reports `warning_count: 3`. The `emailHardwareStaffroomAlert` Firestore trigger then sends one email to `guruprasad.kothavale@iteachschools.org` through Resend. Simulator and manually created alerts are ignored. The alert record stores the email delivery status.
+The device must already exist in the NoiseMap dashboard's \`devices\` collection, with:
+- \`deviceId\`: the exact ID entered in the Arduino sketch.
+- \`locationId\`: the Firestore document ID of the assigned location.
 
-For the initial test, the sender is Resend's shared test sender (`NoiseMap Alerts <onboarding@resend.dev>`). Resend's test sender is restricted to recipient addresses verified in your Resend account. Verify the destination address there first. For ongoing production use, verify a domain you control in Resend and change `ALERT_EMAIL_FROM` in `functions/index.js` to an address on that domain.
+Open \`hardware/arduino_uno_hc05.ino\` in Arduino IDE and replace:
+- \`DEVICE_ID\` with the exact registered device ID.
+- \`LOCATION_ID\` with the assigned Firestore location document ID.
 
-Create a Resend account and an API key. Store the key as a GitHub repository secret named `RESEND_API_KEY` (Settings → Secrets and variables → Actions → New repository secret). Do not paste the key into chat, source code, the website, or a committed file.
+Wiring is documented at the top of the sketch. Arduino D11 is 5V logic; connect it to HC-05 RX through a resistor voltage divider or level shifter. Do not connect Arduino TX directly to HC-05 RX. The sketch uses SoftwareSerial at 9600 baud for HC-05 and USB Serial at 9600 for diagnostics.
 
-The browser-based GitHub Actions workflow creates a temporary `functions/.env.noisemap-ead56` file from that GitHub secret during deployment and removes it when the deployment step finishes. The Functions code reads the value from `process.env.RESEND_API_KEY`; Firebase Secret Manager is not used. The key is therefore deployed as a regular runtime environment variable, **not** as a Secret Manager-backed secret. Restrict access to the Firebase/Google Cloud project and GitHub repository accordingly. Do not print the key in workflow logs.
+Tune \`NOISE_THRESHOLD_ADC\` from observed raw readings in the intended environment. It is not a dB threshold. The sketch counts one warning after each five-second sustained high interval and sends a staffroom alert at the third warning.
 
-Run **Deploy NoiseMap Firebase Functions** from the repository's Actions tab after saving the secret. This removes the Secret Manager setup step, but Firebase Functions deployment may still require the project to use the Blaze billing plan. The email is sent only for a hardware alert with three warnings; Resend's idempotency key prevents duplicate delivery if the trigger retries. The email reports the raw ADC reading and configured ADC threshold, not calibrated dB(A).
+### 5. Test the email alert
 
-### 5. Staffroom browser audio alerts
+1. Confirm the Apps Script web app URL and shared token are configured on the bridge computer.
+2. Confirm the device exists in Firestore and its \`locationId\` matches the Arduino sketch.
+3. Start the bridge and power the Arduino/HC-05 sensor.
+4. Create a sustained sensor reading above the configured threshold for three warning intervals.
+5. Confirm the bridge prints \`event=staffroom_alert · email=sent\`.
+6. Check the inbox for \`guruprasad.kothavale@iteachschools.org\`.
+7. In Firestore, inspect the new \`alerts/{deviceId_episodeId}\` document for \`emailStatus: "sent"\`.
 
-An authorised team member must sign in, open Staffroom Alerts, enable the audio toggle with a user gesture, and keep that page open. The monitor uses the configured raw-ADC threshold and sustained duration. It only evaluates fresh, consecutive, online readings from source `arduino_uno_hc05`; simulated records are excluded. Browser audio cannot play when the page is closed or suspended.
+If an alert fails, check **Apps Script → Executions** for the error. A retry of the same episode will not send another email once the send marker is saved.
+
+## Usage and cost notes
+
+- Firebase Cloud Functions and Firebase Secret Manager are not used by this Apps Script bridge.
+- Firestore has a no-cost daily allowance on the Spark plan: 20,000 document writes and 50,000 document reads per day. The bridge defaults to one observation every 10 seconds (8,640 observation writes/day) plus a heartbeat about once per minute (up to 1,440 more writes/day). Other dashboard activity also uses the project's quota. See [Firestore quotas](https://firebase.google.com/docs/firestore/quotas).
+- Apps Script also has account-specific daily URL Fetch and email quotas. The published URL Fetch quota is 20,000 calls/day for consumer accounts and 100,000 for Workspace accounts; email recipient quotas also vary by account type. These limits can change. See [Apps Script quotas](https://developers.google.com/apps-script/guides/services/quotas).
+- This is designed for a low-volume school prototype, not guaranteed unlimited or 24/7 production service. If quotas are exceeded, Apps Script or Firestore may reject writes until quotas reset or the project is moved to a paid plan.
+- The webhook token is a shared credential. Keep it only in Apps Script Script Properties and the bridge computer's environment variables. Rotate it in both places if it is exposed.
+
+## Browser Staffroom audio alerts
+
+An authorised team member must sign in, open Staffroom Alerts, enable the audio toggle with a user gesture, and keep that page open. The monitor only evaluates fresh, consecutive, online readings from source \`arduino_uno_hc05\`; simulated records are excluded. Browser audio cannot play when the page is closed or suspended.
 
 ## Firestore collections
 
-- `locations`: classroom/site locations.
-- `devices`: registered device ID, assigned location, hardware, heartbeat and connection status.
-- `deviceSecrets`: private server-side token hashes; Firestore client rules deny access.
-- `observations`: timestamped raw ADC readings and source metadata.
-- `alerts`: staffroom alerts and browser-detected sustained-threshold incidents.
-- `actions`: follow-up/action-tracking records.
-- `teamMembers`: allowlisted team user IDs.
+- \`locations\`: classroom/site locations.
+- \`devices\`: registered device ID, assigned location, hardware, heartbeat and connection status.
+- \`observations\`: timestamped raw ADC readings and source metadata.
+- \`alerts\`: staffroom alerts and browser-detected sustained-threshold incidents.
+- \`actions\`: follow-up/action-tracking records.
+- \`teamMembers\`: allowlisted team user IDs.
 
-Never weaken Firestore rules to make device ingestion work. The HTTPS function uses Firebase Admin SDK and validates device credentials independently of browser authentication.
+The legacy \`functions/\` source is retained for reference/rollback but is not part of the new bridge path. Do not run the old Firebase Functions deployment workflow for this setup. If Cloud Functions were already deployed in this Firebase project, review and remove those old functions separately after confirming no other workflow uses them.
 
 ## GitHub Pages
 
-The repository's Pages workflow deploys the static website only. It does not deploy Firebase Functions or Firestore rules. Confirm the workflow run and Pages settings separately after pushing changes.
+The repository's Pages workflow deploys the static website only. It does not deploy Apps Script, Firestore rules, or Firestore data.
