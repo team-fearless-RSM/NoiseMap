@@ -1,6 +1,6 @@
 /**
  * NoiseMap browser audio alerts.
- * Uses consecutive, authenticated ESP8266 raw-ADC observations only.
+ * Uses consecutive, authenticated Arduino Uno + HC-05 raw-ADC observations only.
  * Raw ADC is not calibrated dB/dB(A). The page must remain open to monitor.
  */
 window.NoiseAudio = (() => {
@@ -209,7 +209,7 @@ window.NoiseAudio = (() => {
           try {
             const ctx = getAudioContext();
             if (ctx.state === "suspended") await ctx.resume();
-            setStatus("Sound enabled. Waiting for sustained live ESP8266 readings.");
+            setStatus("Sound enabled. Waiting for sustained live Arduino Uno + HC-05 readings.");
           } catch (error) {
             soundEnabled = false;
             toggle.checked = false;
