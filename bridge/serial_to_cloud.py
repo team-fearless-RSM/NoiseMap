@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Bridge newline-delimited JSON from an HC-05 Bluetooth COM port to NoiseMap.
+"""Bridge newline-delimited HC-05 JSON to NoiseMap's Apps Script endpoint.
 
-The Arduino/HC-05 sends one JSON object per line. This bridge runs on a paired
-Windows/Linux computer and forwards each validated message over HTTPS.
-It does not create or store device credentials.
+The Apps Script endpoint validates the shared bridge token, writes Firestore
+observations, updates device heartbeats, and emails real hardware incidents.
 """
 import json
 import os
@@ -69,15 +68,44 @@ def validate_message(data):
     return payload
 
 
+def post_with_retries(endpoint, payload):
+    last_error = None
+    for attempt in range(3):
+        try:
+            response = requests.post(endpoint, json=payload, timeout=25)
+            try:
+                result = response.json()
+            except ValueError:
+                result = {"response": response.text[:200]}
+            if response.ok and result.get("ok") is True:
+                return result
+            last_error = RuntimeError(
+                f"Apps Script rejected upload ({response.status_code}): {result}"
+            )
+            if response.status_code < 500 and response.status_code != 429:
+                raise last_error
+        except requests.RequestException as exc:
+            last_error = exc
+        if attempt < 2:
+            time.sleep(2 ** attempt)
+    raise last_error or RuntimeError("Apps Script upload failed")
+
+
 def main():
     port = required_env("NOISEMAP_COM_PORT")
-    endpoint = required_env("NOISEMAP_INGEST_URL")
-    token = required_env("NOISEMAP_DEVICE_TOKEN")
+    endpoint = required_env("NOISEMAP_APPS_SCRIPT_URL")
+    token = required_env("NOISEMAP_WEBHOOK_TOKEN")
     baud = int(os.environ.get("NOISEMAP_BAUD", "9600"))
+    upload_interval = float(os.environ.get("NOISEMAP_UPLOAD_INTERVAL_SECONDS", "10"))
+    if upload_interval < 1:
+        raise SystemExit("NOISEMAP_UPLOAD_INTERVAL_SECONDS must be at least 1")
 
     print(f"NoiseMap HC-05 bridge listening on {port} at {baud} baud")
-    print("Press Ctrl+C to stop. Do not share the device token.")
+    print(f"Uploading normal readings every {upload_interval:g} seconds")
+    print("Incident and reset events are uploaded immediately. Press Ctrl+C to stop.")
+    print("Do not share the webhook token.")
 
+    last_uploaded_at = 0.0
     with serial.Serial(port, baudrate=baud, timeout=1) as bluetooth:
         time.sleep(2)
         while True:
@@ -89,24 +117,22 @@ def main():
                 continue
             try:
                 message = validate_message(json.loads(line))
-                response = requests.post(
-                    endpoint,
-                    json=message,
-                    headers={"Authorization": f"Bearer {token}"},
-                    timeout=10,
+                now = time.monotonic()
+                if message["event"] == "observation" and now - last_uploaded_at < upload_interval:
+                    continue
+
+                payload = dict(message)
+                payload["webhook_token"] = token
+                result = post_with_retries(endpoint, payload)
+                last_uploaded_at = time.monotonic()
+                print(
+                    f"Saved ADC={message['raw_adc']} · event={message['event']}"
+                    + (f" · email={result.get('email_status')}" if message["event"] == "staffroom_alert" else "")
                 )
-                try:
-                    result = response.json()
-                except ValueError:
-                    result = {"response": response.text[:200]}
-                if response.ok and result.get("ok") is True:
-                    print(f"Saved ADC={message['raw_adc']} · event={message['event']}")
-                else:
-                    print(f"Upload rejected ({response.status_code}): {result}", file=sys.stderr)
             except (UnicodeError, json.JSONDecodeError, ValueError) as exc:
                 print(f"Skipped serial line: {exc}", file=sys.stderr)
-            except requests.RequestException as exc:
-                print(f"Network upload failed: {exc}", file=sys.stderr)
+            except (requests.RequestException, RuntimeError) as exc:
+                print(f"Upload failed: {exc}", file=sys.stderr)
 
 
 if __name__ == "__main__":
