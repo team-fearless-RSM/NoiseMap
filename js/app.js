@@ -1056,6 +1056,15 @@
     if (!container) return;
     container.innerHTML = "";
     cachedLocations.forEach(location => container.appendChild(makeLocationDetailSection(location)));
+
+    // Firestore creates room pages after the initial URL hash is processed.
+    // Reveal and scroll to a directly linked classroom once its page exists.
+    const targetId = decodeURIComponent((window.location.hash || "").slice(1));
+    const target = targetId.startsWith("location-") ? document.getElementById(targetId) : null;
+    if (target && target.classList.contains("location-detail-page")) {
+      target.style.display = "block";
+      window.setTimeout(() => target.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    }
   }
 
   function connectLocations() {
