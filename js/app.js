@@ -1509,7 +1509,11 @@
     const d1 = Number(calibration.db1), d2 = Number(calibration.db2);
     if (![a1, a2, d1, d2].every(Number.isFinite) || a1 <= 0 || a2 <= 0 ||
         a1 === a2 || d1 === d2 || rawAdc < Math.min(a1, a2) || rawAdc > Math.max(a1, a2)) return null;
-    return d1 + (d2 - d1) * (Math.log(rawAdc / a1) / Math.log(a2 / a1));
+    const slope = Number.isFinite(Number(calibration.slope))
+      ? Number(calibration.slope) : (d2 - d1) / (Math.log(a2) - Math.log(a1));
+    const offset = Number.isFinite(Number(calibration.offset))
+      ? Number(calibration.offset) : d1 - slope * Math.log(a1);
+    return slope * Math.log(rawAdc) + offset;
   }
 
   function openCalibrationDialog(device) {
