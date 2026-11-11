@@ -59,9 +59,7 @@ ADC range, warning count and event fields before saving.
 - This script has not been tested against the physical Uno/HC-05 hardware yet.
 - It does not provision device tokens. The project owner must securely create
   and store the device token hash in `deviceSecrets/{deviceId}`.
-- The current ingestion function writes the source label `esp8266` for
-  authenticated uploads. That is a legacy label, not board identification.
-  Do not infer the physical board from that field.
+- The ingestion function labels accepted readings `arduino_uno_hc05`, matching this hardware path.
 - Browser audio monitoring still requires fresh consecutive authenticated
   observations and an online heartbeat. Simulated observations remain excluded.
 - LM393 ADC values are raw sensor signals, not calibrated dB or dB(A).
