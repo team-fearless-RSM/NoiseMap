@@ -1270,3 +1270,28 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 .export-status{color:var(--muted);font:11px "DM Mono",monospace}
 .history-export-note{flex-basis:100%;margin:0;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:600px){.history-controls-row{align-items:stretch}.history-filter-group,.history-filter-group>div,.history-export-actions{width:100%}.history-filter-group select{width:100%}.history-export-actions{align-items:flex-start;flex-direction:column}}
+
+/* Experimental two-point calibration and exposure estimates */
+.calibration-dialog{width:min(94vw,620px);max-height:90vh;border:1px solid var(--line);border-radius:14px;padding:0;box-shadow:0 24px 80px rgba(16,42,67,.25)}
+.calibration-dialog::backdrop{background:rgba(8,24,38,.62)}
+.calibration-form{padding:24px;display:grid;gap:12px}
+.calibration-close{border:0;background:#eef3f5;border-radius:7px;width:32px;height:32px;font-size:22px;cursor:pointer;color:var(--ink)}
+.calibration-warning{padding:12px;background:#fff6e8;border:1px solid #f2dfbd;border-radius:8px;color:#8a5b19;font-size:11px;line-height:1.6;margin:0}
+.calibration-points{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.calibration-points fieldset{border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:7px}
+.calibration-points legend{font-size:11px;font-weight:700;color:var(--ink);padding:0 5px}
+.calibration-form label{font-size:10px;font-weight:700;color:#526978}
+.calibration-form input{width:100%;border:1px solid #dce5ea;border-radius:7px;padding:9px;font:12px "DM Sans",sans-serif}
+.calibration-status{min-height:16px;color:var(--teal-dark);font-size:11px;margin:0}
+.calibration-actions{display:flex;gap:9px;flex-wrap:wrap}
+.calibration-secondary,.calibration-open-button{border:1px solid #dce5ea;border-radius:7px;background:#fff;color:#526978;padding:9px 12px;font:600 10px "DM Sans",sans-serif;cursor:pointer}
+.calibration-open-button{margin-top:10px;align-self:flex-start}
+.exposure-panel{margin:18px 0}
+.exposure-tag{background:#fff4e4;color:#a66d1e;padding:6px 8px;border-radius:5px;font-size:8px;font-weight:800;letter-spacing:.7px}
+.exposure-estimate-list{display:grid;gap:9px;margin-top:15px}
+.exposure-estimate-row{display:grid;grid-template-columns:minmax(120px,.8fr) minmax(200px,1.2fr);gap:4px 12px;padding:12px;border:1px solid var(--line);border-radius:8px}
+.exposure-estimate-row strong{font-size:11px;color:#304a5b}
+.exposure-estimate-row span{font-size:11px;font-weight:700;color:#167d75}
+.exposure-estimate-row small{grid-column:1/-1;color:#8998a2;font-size:9px}
+.exposure-disclaimer{font-size:10px;color:var(--muted);line-height:1.6;margin:12px 0 0}
+@media(max-width:600px){.calibration-points{grid-template-columns:1fr}.exposure-estimate-row{grid-template-columns:1fr}}
