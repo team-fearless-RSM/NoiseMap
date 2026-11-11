@@ -117,7 +117,7 @@ exports.ingestDeviceData = onRequest(
         unit: "ADC (0-1023)",
         status,
         warningCount,
-        source: "esp8266",
+        source: "arduino_uno_hc05",
         firmwareVersion,
         createdAt: timestamp
       });
@@ -143,7 +143,7 @@ exports.ingestDeviceData = onRequest(
             rawAdc,
             warningCount: 3,
             status: "open",
-            source: "esp8266",
+            source: "arduino_uno_hc05",
             episodeId,
             createdAt: FieldValue.serverTimestamp()
           });
