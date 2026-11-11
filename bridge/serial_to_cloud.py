@@ -94,7 +94,7 @@ def post_with_retries(endpoint, payload):
 def main():
     port = required_env("NOISEMAP_COM_PORT")
     endpoint = required_env("NOISEMAP_APPS_SCRIPT_URL")
-    token = required_env("NOISEMAP_WEBHOOK_TOKEN")
+    token = required_env("NOISEMAP_DEVICE_SECRET")
     baud = int(os.environ.get("NOISEMAP_BAUD", "9600"))
     upload_interval = float(os.environ.get("NOISEMAP_UPLOAD_INTERVAL_SECONDS", "10"))
     if upload_interval < 1:
@@ -103,7 +103,7 @@ def main():
     print(f"NoiseMap HC-05 bridge listening on {port} at {baud} baud")
     print(f"Uploading normal readings every {upload_interval:g} seconds")
     print("Incident and reset events are uploaded immediately. Press Ctrl+C to stop.")
-    print("Do not share the webhook token.")
+    print("Do not share the device secret.")
 
     last_uploaded_at = 0.0
     with serial.Serial(port, baudrate=baud, timeout=1) as bluetooth:
@@ -122,7 +122,7 @@ def main():
                     continue
 
                 payload = dict(message)
-                payload["webhook_token"] = token
+                payload["api_key"] = token
                 result = post_with_retries(endpoint, payload)
                 last_uploaded_at = time.monotonic()
                 print(
