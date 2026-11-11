@@ -1301,3 +1301,7 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 .floorplan-room.is-planned .floorplan-room-status{background:#fff0d4;color:#95631d}
 .device-monitor-status.is-planned{background:#fff0d4;color:#95631d;border-color:#f0dfbd}
 .location-detail-device .calibration-open-button{justify-self:start;grid-column:1/-1}
+
+
+/* Keep a directly linked classroom detail page visible below the sticky top bar. */
+.location-detail-page:target{display:block!important;scroll-margin-top:82px}
