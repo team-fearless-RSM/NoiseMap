@@ -25,7 +25,7 @@ function update(){rooms.forEach(function(r){r.value=Math.max(80,Math.min(950,r.v
 el("pauseBtn").addEventListener("click",function(){running=!running;el("pauseBtn").textContent=running?"Pause":"Resume";el("runState").textContent=running?"Simulation running":"Simulation paused";if(running)timer=setInterval(update,3000);else clearInterval(timer)});
 el("spikeBtn").addEventListener("click",function(){spikeRoom="103";update()});
 el("resetBtn").addEventListener("click",function(){var vals=[320,560,735,245];rooms.forEach(function(r,i){r.value=vals[i];r.history=[]});records.length=0;renderRooms();renderAlerts();renderRecords();renderChart();el("updatedAt").textContent="Demo reset · "+stamp()});
-rooms.forEach(function(r){for(var i=0;i<20;i++)r.history.push(Math.max(80,Math.min(950,r.value+Math.round((Math.random()-.5)*150)))});
+rooms.forEach(function(r){for(var i=0;i<20;i++)r.history.push(Math.max(80,Math.min(950,r.value+Math.round((Math.random()-.5)*150))))});
 timer=setInterval(update,3000);update();
 })();
 </script></body></html>
