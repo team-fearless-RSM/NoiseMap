@@ -34,6 +34,10 @@ def validate_message(data):
     if isinstance(raw, bool) or not isinstance(raw, int) or not 0 <= raw <= 1023:
         raise ValueError("raw_adc must be an integer from 0 to 1023")
 
+    threshold = data.get("threshold_adc", 700)
+    if isinstance(threshold, bool) or not isinstance(threshold, int) or not 0 <= threshold <= 1023:
+        raise ValueError("threshold_adc must be an integer from 0 to 1023")
+
     warning_count = data.get("warning_count", 0)
     if isinstance(warning_count, bool) or not isinstance(warning_count, int) or not 0 <= warning_count <= 3:
         raise ValueError("warning_count must be an integer from 0 to 3")
@@ -54,6 +58,7 @@ def validate_message(data):
         "device_id": data["device_id"],
         "location_id": data["location_id"],
         "raw_adc": raw,
+        "threshold_adc": threshold,
         "warning_count": warning_count,
         "status": data["status"],
         "event": event,
