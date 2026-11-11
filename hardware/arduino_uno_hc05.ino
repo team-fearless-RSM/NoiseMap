@@ -79,6 +79,7 @@ void setup() {
   digitalWrite(BUZZER_PIN, LOW);
   Serial.begin(9600);
   bluetooth.begin(9600);
+  randomSeed(analogRead(A1) + micros());
   Serial.println("NoiseMap Uno + HC-05 starting");
   Serial.println("Check DEVICE_ID and LOCATION_ID before connecting.");
 }
@@ -95,7 +96,7 @@ void loop() {
     if (!wasNoisy) {
       lastWarningAt = now;
       episodeNumber++;
-      episodeId = String(DEVICE_ID) + "_" + String(episodeNumber);
+      episodeId = String(random(100000, 999999)) + "_" + String(episodeNumber);
       warningCount = 0;
       alertSent = false;
     }
