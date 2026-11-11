@@ -56,7 +56,7 @@ Do **not** create another Apps Script project. The current NoiseMap deployment a
 6. Open **Deploy → Manage deployments**, edit the existing Web App deployment, select **New version**, and deploy. Keep the existing deployment URL and its access settings.
 7. Check **Triggers** in the Apps Script editor. Confirm that `pollNoiseMapAlerts` has a five-minute time-driven trigger. Only if it is missing, run `installNoiseMapFiveMinuteTrigger()` once.
 
-The Google account running the Apps Script must have the **Cloud Datastore User** IAM role on Firebase project `noisemap-ead56`. Emails are sent by the Google account that owns/runs the script. A real hardware alert is saved immediately, and the scheduled monitor sends its email on the next run (normally within five minutes).
+The Google account running the Apps Script must have the **Cloud Datastore User** IAM role on Firebase project `noisemap-ead56`. Emails are sent by the Google account that owns/runs the script. A real hardware alert is saved immediately, and the scheduled monitor sends its email on the next run (normally within five minutes). Alert documents use a deterministic device-and-episode ID, so a retried HC-05 alert does not create a second incident for the same noise episode. The monitor excludes records marked simulated.
 
 ### 3. Configure the bridge computer
 
