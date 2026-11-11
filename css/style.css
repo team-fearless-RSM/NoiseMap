@@ -1295,3 +1295,9 @@ button:hover,.signout-button:hover,.team-login-button:hover,
 .exposure-estimate-row small{grid-column:1/-1;color:#8998a2;font-size:9px}
 .exposure-disclaimer{font-size:10px;color:var(--muted);line-height:1.6;margin:12px 0 0}
 @media(max-width:600px){.calibration-points{grid-template-columns:1fr}.exposure-estimate-row{grid-template-columns:1fr}}
+
+/* Planned sensor state in classroom floorplan and location monitoring */
+.floorplan-room.is-planned{border-color:#e4d4ad;background:linear-gradient(145deg,#fff9ed,#fffdf8)}
+.floorplan-room.is-planned .floorplan-room-status{background:#fff0d4;color:#95631d}
+.device-monitor-status.is-planned{background:#fff0d4;color:#95631d;border-color:#f0dfbd}
+.location-detail-device .calibration-open-button{justify-self:start;grid-column:1/-1}
