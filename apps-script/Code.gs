@@ -113,6 +113,20 @@ function createNoiseMapDeviceSecret() {
 }
 
 
+// Run only when the bridge computer needs the existing secret value.
+// Copy it from the private Apps Script execution log; never share it publicly.
+function logNoiseMapDeviceSecretForBridge() {
+  const secret = PropertiesService
+    .getScriptProperties()
+    .getProperty("NM_DEVICE_SECRET");
+  if (!secret) {
+    throw new Error("NM_DEVICE_SECRET is not configured. Run createNoiseMapDeviceSecret() first.");
+  }
+  Logger.log("Copy this value into NOISEMAP_DEVICE_SECRET on the bridge computer:");
+  Logger.log(secret);
+}
+
+
 // ============================================================
 // 4. FIRESTORE DIAGNOSTICS
 // ============================================================
@@ -198,7 +212,7 @@ function diagnoseAllNoiseMapObservations() {
   Logger.log("TOTAL DOCUMENTS: " + documents.length);
   Logger.log("DOCUMENTS WITH FIELDS: " + withFields);
   Logger.log("EMPTY DOCUMENTS: " + withoutFields);
-  Logger.log("REAL ESP8266 DOCUMENTS: " + realESP);
+  Logger.log("REAL UNO + HC-05 DOCUMENTS: " + realESP);
   Logger.log("SIMULATED DOCUMENTS: " + simulated);
 }
 
