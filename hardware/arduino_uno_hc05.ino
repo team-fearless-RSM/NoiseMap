@@ -49,6 +49,8 @@ void sendMessage(int rawAdc, const char* status, const char* eventName) {
   bluetooth.print(LOCATION_ID);
   bluetooth.print("\",\"raw_adc\":");
   bluetooth.print(rawAdc);
+  bluetooth.print(",\"threshold_adc\":");
+  bluetooth.print(NOISE_THRESHOLD_ADC);
   bluetooth.print(",\"warning_count\":");
   bluetooth.print(warningCount);
   bluetooth.print(",\"status\":\"");
