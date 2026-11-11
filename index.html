@@ -46,6 +46,7 @@
         <a class="nav-link" href="#locations" data-page="locations"><span aria-hidden="true">⌖</span> Locations</a>
         <a class="nav-link" href="#alerts" data-page="alerts" data-team-only="true"><span aria-hidden="true">!</span> Staffroom Alerts</a>
         <a class="nav-link" href="#devices" data-page="devices"><span aria-hidden="true">▣</span> Devices</a>
+        <a class="nav-link" href="#simulation-lab" data-page="simulation-lab"><span aria-hidden="true">⌁</span> Simulation Lab</a>
         <a class="nav-link" href="#history" data-page="history"><span aria-hidden="true">⌁</span> Historical Data</a>
         <a class="nav-link" href="#actions" data-page="actions" data-team-only="true"><span aria-hidden="true">✓</span> Action Tracker</a>
         <a class="nav-link" href="#future-development" data-page="future-development"><span aria-hidden="true">↗</span> Future Development</a>
@@ -61,7 +62,7 @@
       <header class="topbar">
         <button class="menu-button" id="menuButton" aria-label="Toggle navigation">☰</button>
         <div class="breadcrumb">Workspace <span>/</span> <strong id="pageName">Overview</strong></div>
-        <div class="topbar-right"><span class="status-dot"></span><span id="signedInEmail">Public view</span><a class="team-login-button" href="demo.html" style="text-decoration:none" aria-label="Open simulated multi-room demo">Demo preview</a><button class="team-login-button" id="teamSignInButton" type="button">Team sign in</button><button class="signout-button" id="signOutButton" type="button" hidden>Sign out</button><span class="top-avatar">TF</span></div>
+        <div class="topbar-right"><span class="status-dot"></span><span id="signedInEmail">Public view</span><a class="team-login-button" href="#simulation-lab" style="text-decoration:none" aria-label="Open the in-site multi-room simulation">Simulation Lab</a><button class="team-login-button" id="teamSignInButton" type="button">Team sign in</button><button class="signout-button" id="signOutButton" type="button" hidden>Sign out</button><span class="top-avatar">TF</span></div>
       </header>
 
       <aside class="prototype-status-banner" role="note" aria-label="Prototype status">
@@ -315,6 +316,30 @@
           </form>
         </dialog>
         <div class="panel empty-panel" id="deviceEmpty"><span class="empty-icon">▣</span><h2>No device records yet</h2><p>Registered sensor units will appear here after a team member adds them.</p></div>
+      </section>
+      <section class="page-content secondary-page" id="simulation-lab">
+        <div class="eyebrow">NOISEMAP · TEST ENVIRONMENT</div>
+        <div class="simulation-heading">
+          <div><h1>Multi-room Simulation Lab</h1><p class="intro">Preview how multiple room devices could appear together in NoiseMap before physical ESP8266 sensors are connected.</p></div>
+          <span class="simulator-badge">SIMULATION · NOT LIVE</span>
+        </div>
+        <div class="simulation-warning"><strong>DEMO DATA ONLY</strong><p>All readings below are generated in this browser. They are illustrative raw ADC-style values (0–1023), not physical measurements, dB or dB(A). This page does not write to Firestore, create real alerts, or send emails.</p></div>
+        <div class="simulation-kpis">
+          <article class="stat-card"><div class="stat-top"><span>Demo rooms</span><span class="stat-icon teal">⌖</span></div><div class="stat-value" id="simRoomCount">4</div><div class="stat-foot">Example monitoring points</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Simulated devices</span><span class="stat-icon blue">◉</span></div><div class="stat-value" id="simOnlineCount">4</div><div class="stat-foot">Browser-generated status</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Elevated / high</span><span class="stat-icon amber">!</span></div><div class="stat-value" id="simAttentionCount">0</div><div class="stat-foot">Demo bands only</div></article>
+          <article class="stat-card"><div class="stat-top"><span>Open demo incidents</span><span class="stat-icon violet">⌁</span></div><div class="stat-value" id="simAlertCount">0</div><div class="stat-foot">No real alerts or email</div></article>
+        </div>
+        <section class="panel simulation-room-panel">
+          <div class="panel-heading"><div><h2>Room monitoring preview</h2><p>Example device identity · raw ADC values</p></div><div class="simulation-controls"><button class="location-submit" id="simPauseBtn" type="button">Pause</button><button class="location-submit" id="simSpikeBtn" type="button">Simulate spike</button><button class="calibration-secondary" id="simResetBtn" type="button">Reset</button></div></div>
+          <div class="simulation-room-grid" id="simRoomGrid" aria-live="polite"></div>
+          <p class="simulation-state" id="simRunStatus" role="status">Simulation running · updates every 3 seconds</p>
+        </section>
+        <div class="simulation-lower-grid">
+          <section class="panel"><div class="panel-heading"><div><h2>Demo incident feed</h2><p>Illustrative events only</p></div><span class="simulator-badge">TEST ONLY</span></div><div id="simIncidentFeed" class="simulation-feed"><p class="dashboard-empty-text">No demo incidents yet.</p></div></section>
+          <section class="panel"><div class="panel-heading"><div><h2>Room trend</h2><p>Recent generated samples · ADC 0–1023</p></div></div><div id="simTrendChart" class="simulation-chart" role="img" aria-label="Simulated trend chart for the first two rooms"></div></section>
+        </div>
+        <section class="panel simulation-table-panel"><div class="panel-heading"><div><h2>Latest demo observations</h2><p>Browser-only records · not saved to NoiseMap</p></div><span class="simulator-badge">SIMULATED</span></div><div class="table-scroll"><table class="simulation-table"><thead><tr><th>Time</th><th>Room</th><th>Device ID</th><th>Raw ADC</th><th>Status</th><th>Source</th></tr></thead><tbody id="simObservationRows"><tr><td colspan="6">Waiting for first simulated update…</td></tr></tbody></table></div></section>
       </section>
       <section class="page-content secondary-page" id="history">
         <div class="eyebrow">WORKSPACE</div><h1>Historical Data</h1>
