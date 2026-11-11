@@ -14,7 +14,20 @@ self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
+  // Cache the Firebase compat SDK after the first online visit so the app shell
+  // can still start when the school connection drops.
+  if (url.origin !== self.location.origin) {
+    if (url.hostname === "www.gstatic.com" && url.pathname.startsWith("/firebasejs/10.12.5/")) {
+      event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
+        if (response.ok || response.type === "opaque") {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+        }
+        return response;
+      })));
+    }
+    return;
+  }
   if (request.mode === "navigate") {
     event.respondWith(fetch(request).then(response => {
       const copy = response.clone();
