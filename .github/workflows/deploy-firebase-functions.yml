@@ -35,7 +35,7 @@ jobs:
       - name: Install Firebase CLI
         run: npm install --global firebase-tools
 
-      - name: Store Resend API key in Firebase Secret Manager
+      - name: Deploy Firebase Functions with Resend environment variable
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
@@ -43,7 +43,7 @@ jobs:
             echo "Missing GitHub repository secret: RESEND_API_KEY"
             exit 1
           fi
-          printf '%s' "$RESEND_API_KEY" | firebase functions:secrets:set RESEND_API_KEY --project noisemap-ead56 --data-file=-
-
-      - name: Deploy Firebase Functions
-        run: firebase deploy --only functions --project noisemap-ead56 --non-interactive
+          umask 077
+          printf 'RESEND_API_KEY=%s\n' "$RESEND_API_KEY" > functions/.env.noisemap-ead56
+          trap 'rm -f functions/.env.noisemap-ead56' EXIT
+          firebase deploy --only functions --project noisemap-ead56 --non-interactive
