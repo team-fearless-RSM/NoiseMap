@@ -26,7 +26,7 @@ function doPost(e) {
     if (device.locationId !== data.location_id) {
       throw new Error("Device is not assigned to the reported location");
     }
-    const location = getDocument("locations", data.location_id);
+    const location = getCachedLocation(data.location_id);
     if (!location) throw new Error("Registered location was not found");
 
     const now = new Date();
@@ -132,6 +132,16 @@ function findRegisteredDevice(deviceId) {
   return device;
 }
 
+function getCachedLocation(locationId) {
+  const cache = CacheService.getScriptCache();
+  const key = "location_" + locationId;
+  const cached = cache.get(key);
+  if (cached) return JSON.parse(cached);
+  const location = getDocument("locations", locationId);
+  if (location) cache.put(key, JSON.stringify(location), 21600);
+  return location;
+}
+
 function getDocument(collection, documentId) {
   const url = FIRESTORE_BASE + "/" + collection + "/" + encodeURIComponent(documentId);
   try {
@@ -185,7 +195,7 @@ function updateHeartbeatIfDue(deviceDocumentId, deviceId, now) {
 
   patchDocument("devices", deviceDocumentId, {
     lastHeartbeatAt: timestampValue(now),
-    connectionStatus: booleanStringValue("online")
+    connectionStatus: stringValue("online")
   });
   props.setProperty(key, String(now.getTime()));
 }
@@ -197,7 +207,7 @@ function sendIncidentEmail(data, classroomName, now) {
   try {
     const existing = getDocument("alerts", alertId);
     if (!existing) {
-      patchDocument("alerts", alertId, {
+      createDocument("alerts", alertId, {
         locationId: stringValue(data.location_id),
         classroomName: stringValue(classroomName),
         deviceId: stringValue(data.device_id),
@@ -291,9 +301,6 @@ function timestampValue(value) {
   return { timestampValue: value.toISOString() };
 }
 
-function booleanStringValue(value) {
-  return { stringValue: value };
-}
 
 function escapeHtml(value) {
   return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;")
