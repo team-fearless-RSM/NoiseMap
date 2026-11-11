@@ -66,13 +66,7 @@ Install dependencies:
 py -m pip install pyserial requests
 \`\`\`
 
-Generate a private device secret locally:
-
-\`\`\`powershell
-py -c "import secrets; print(secrets.token_urlsafe(32))"
-\`\`\`
-
-Copy the generated value into the Apps Script Script Property \`NOISEMAP_DEVICE_SECRET\`. Then set the same value in the bridge computer's environment. Do not send it in chat, commit it, or put it in Arduino firmware.
+Use the existing secret stored in the Apps Script Script Property `NM_DEVICE_SECRET`. In the existing Apps Script project, run `logNoiseMapDeviceSecretForBridge()` and copy the value from its private execution log. Set that same value in the bridge computer's `NOISEMAP_DEVICE_SECRET` environment variable. Do not generate a new secret unless the existing property is missing; never send it in chat, commit it, or put it in Arduino firmware.
 
 Set these PowerShell variables for the current terminal session:
 
@@ -107,7 +101,7 @@ Tune \`NOISE_THRESHOLD_ADC\` from observed raw readings in the intended environm
 2. Confirm the device exists in Firestore and its \`locationId\` matches the Arduino sketch.
 3. Start the bridge and power the Arduino/HC-05 sensor.
 4. Create a sustained sensor reading above the configured threshold for three warning intervals.
-5. Confirm the bridge prints \`event=staffroom_alert · email=sent\`.
+5. Confirm the bridge prints \`event=staffroom_alert · alert saved; email monitor checks within 5 minutes\`.
 6. Check the inbox for \`guruprasad.kothavale@iteachschools.org\`.
 7. In Firestore, inspect the new \`alerts/{deviceId_episodeId}\` document for \`emailStatus: "sent"\`.
 
