@@ -2,7 +2,7 @@
 
 **Team Fearless · NRL Changemakers**
 
-NoiseMap is a prototype for recording sound-sensor observations at selected locations, viewing patterns over time, and tracking follow-up actions. The hardware path is **Arduino Uno + LM393 4-pin sound sensor + HC-05 Bluetooth**, with a paired computer running the Python bridge.
+NoiseMap is a prototype for recording sound-sensor observations at selected locations, viewing patterns over time, and tracking follow-up actions. The repository supports two physical hardware paths: **Arduino Uno + LM393 + HC-05 Bluetooth + computer bridge**, and **NodeMCU ESP8266 + LM393 over Wi-Fi directly to the existing Apps Script endpoint**.
 
 ## Current implementation
 
@@ -10,7 +10,9 @@ NoiseMap is a prototype for recording sound-sensor observations at selected loca
 - Device registration in the \`devices\` collection and location assignment.
 - Arduino Uno firmware: \`hardware/arduino_uno_hc05.ino\`.
 - HC-05 serial bridge: \`bridge/serial_to_cloud.py\`.
-- Google Apps Script backend: \`apps-script/Code.gs\`.
+- NodeMCU ESP8266 Wi-Fi firmware: \`hardware/esp8266_lm393_wifi.ino\`.
+- ESP8266 setup guide and private credentials template: \`hardware/ESP8266_SETUP.md\` and \`hardware/esp8266_secrets.example.h\`.
+- Google Apps Script backend: \`apps-script/Code.gs\` (accepts both physical hardware sources).
 - Firestore REST API writes for observations, device heartbeats, and hardware alerts.
 - Email sent by Google Apps Script MailApp after a real sensor incident reaches warning 3 of 3.
 - Browser Staffroom audio alerts for fresh, consecutive, authenticated Uno/HC-05 readings.
@@ -141,4 +143,4 @@ Use **Devices → Sensor simulator** while signed in as an authorised Team Fearl
 
 **Live Monitoring uses these saved test observations in its main trend, latest-reading list, location comparison, overview and room floorplan.** Test points and rows are explicitly labelled TEST. This exercises the Firestore-to-dashboard integration and multi-device room presentation, but does not connect a physical sensor, create a hardware heartbeat, trigger the hardware alert pipeline, or provide environmental evidence. The Staffroom Audio Monitor continues to ignore simulated readings. Raw ADC values are not calibrated dB or dB(A).
 
-The intended future hardware direction is one ESP8266 per room sending observations over school Wi-Fi to the existing NoiseMap backend. The live hardware ingestion path remains the Uno + HC-05 implementation until ESP8266 firmware and authenticated ingestion are implemented and tested.
+The ESP8266 Wi-Fi ingestion path is now implemented in the repository. It sends authenticated heartbeats and raw-ADC observations directly to the existing Apps Script endpoint. It must still be configured with local Wi-Fi credentials and the existing device secret, deployed in Apps Script, and tested on the actual board before it is considered operational.
