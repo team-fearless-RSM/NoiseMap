@@ -718,6 +718,27 @@ function doPost(e) {
         }
       };
 
+      if (data.digital_output !== undefined) {
+        const digitalOutput = Number(data.digital_output);
+        if (digitalOutput !== 0 && digitalOutput !== 1) {
+          throw new Error("digital_output must be 0 or 1.");
+        }
+        observationFields.digitalOutput = {
+          integerValue: String(digitalOutput)
+        };
+      }
+
+      ["sample_min", "sample_max"].forEach(function(key) {
+        if (data[key] === undefined) return;
+        const value = Number(data[key]);
+        if (!Number.isInteger(value) || value < 0 || value > 1023) {
+          throw new Error(key + " must be an integer from 0 to 1023.");
+        }
+        observationFields[key === "sample_min" ? "sampleMin" : "sampleMax"] = {
+          integerValue: String(value)
+        };
+      });
+
       nmFirestoreWrite(
         "patch",
         nmBaseUrl() +
@@ -743,6 +764,7 @@ function doPost(e) {
     if (data.event === "staffroom_alert") {
       const deviceId = String(data.device_id || "");
       const locationId = String(data.location_id || "");
+      const hardwareSource = nmGetHardwareSource(data);
 
       if (!deviceId || !locationId) {
         throw new Error(
