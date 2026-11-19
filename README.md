@@ -15,7 +15,7 @@ NoiseMap is a prototype for recording sound-sensor observations at selected loca
 - Google Apps Script backend: \`apps-script/Code.gs\` (accepts both physical hardware sources).
 - Firestore REST API writes for observations, device heartbeats, and hardware alerts.
 - Email sent by Google Apps Script MailApp after a real sensor incident reaches warning 3 of 3.
-- Browser Staffroom audio alerts for fresh, consecutive, authenticated Uno/HC-05 readings.
+- Browser Staffroom audio alerts for fresh, consecutive, authenticated physical hardware readings (Uno/HC-05 and ESP8266).
 - Simulator records remain separate from real hardware events.
 
 The Apps Script path replaces the Firebase Cloud Functions ingestion and email-trigger path. It does not require Firebase Cloud Functions deployment or Firebase Secret Manager. Firestore remains the database.
@@ -24,7 +24,7 @@ The Apps Script path replaces the Firebase Cloud Functions ingestion and email-t
 
 The LM393 module's analogue output is a raw ADC signal (0–1023), not calibrated sound pressure. NoiseMap must not label these values as dB/dB(A), claim source identification (for example, traffic versus voices), or claim regulatory exceedance without suitable calibrated instrumentation and a documented method. The firmware threshold is a tunable raw-ADC threshold only.
 
-## Data path
+## Uno + HC-05 data path
 
 1. LM393 AO connects to Arduino A0.
 2. Arduino sends newline-delimited JSON over HC-05 Bluetooth serial.
@@ -51,9 +51,9 @@ Do not loosen Firestore Security Rules to make this work. The script uses Google
 Do **not** create another Apps Script project. The current NoiseMap deployment already uses Firebase project `noisemap-ead56`, the existing `NM_DEVICE_SECRET` Script Property, and the deployed Web App URL stored in `NM_WEB_APP_URL`.
 
 1. Open the existing Apps Script project that contains your current NoiseMap code.
-2. Replace its `Code.gs` contents with the updated `apps-script/Code.gs` from this repository. This preserves the existing functions and adds support for Arduino Uno + HC-05 events.
+2. Replace its `Code.gs` contents with the updated `apps-script/Code.gs` from this repository. This preserves the existing functions and adds support for Arduino Uno + HC-05 and ESP8266 Wi-Fi events.
 3. Confirm the Script Property `NM_DEVICE_SECRET` already exists. If it is missing, run `createNoiseMapDeviceSecret()` once, then run `logNoiseMapDeviceSecretForBridge()`.
-4. Run `logNoiseMapDeviceSecretForBridge()` to display the existing secret in the private Apps Script execution log. Copy it directly into the bridge computer's environment. **Never paste it into chat, GitHub, Arduino firmware, or the website.**
+4. Run `logNoiseMapDeviceSecretForBridge()` to display the existing secret in the private Apps Script execution log. Copy it directly into the bridge computer's environment. **Never paste it into chat, GitHub, or the website.** For the ESP8266 only, copy it into the local, Git-ignored `hardware/esp8266_secrets.h` file as described in `hardware/ESP8266_SETUP.md`.
 5. Run `testNoiseMapFirestore()` and `testNoiseMapEmail()` if you need to verify Firestore and email permissions.
 6. Open **Deploy → Manage deployments**, edit the existing Web App deployment, select **New version**, and deploy. Keep the existing deployment URL and its access settings.
 7. Check **Triggers** in the Apps Script editor. Confirm that `pollNoiseMapAlerts` has a five-minute time-driven trigger. Only if it is missing, run `installNoiseMapFiveMinuteTrigger()` once.
@@ -68,7 +68,7 @@ Install dependencies:
 py -m pip install pyserial requests
 \`\`\`
 
-Use the existing secret stored in the Apps Script Script Property `NM_DEVICE_SECRET`. In the existing Apps Script project, run `logNoiseMapDeviceSecretForBridge()` and copy the value from its private execution log. Set that same value in the bridge computer's `NOISEMAP_DEVICE_SECRET` environment variable. Do not generate a new secret unless the existing property is missing; never send it in chat, commit it, or put it in Arduino firmware.
+Use the existing secret stored in the Apps Script Script Property `NM_DEVICE_SECRET`. In the existing Apps Script project, run `logNoiseMapDeviceSecretForBridge()` and copy the value from its private execution log. Set that same value in the bridge computer's `NOISEMAP_DEVICE_SECRET` environment variable. Do not generate a new secret unless the existing property is missing; never send it in chat or commit it. The ESP8266 needs it in the local, Git-ignored `hardware/esp8266_secrets.h` file; see `hardware/ESP8266_SETUP.md`.
 
 Set these PowerShell variables for the current terminal session:
 
@@ -115,7 +115,7 @@ If an alert fails, check **Apps Script → Executions** for the error. The alert
 - Firestore has a no-cost daily allowance on the Spark plan: 20,000 document writes and 50,000 document reads per day. The bridge defaults to one observation every 10 seconds (8,640 observation writes/day) plus a heartbeat about once per minute (up to 1,440 more writes/day). Other dashboard activity also uses the project's quota. See [Firestore quotas](https://firebase.google.com/docs/firestore/quotas).
 - Apps Script also has account-specific daily URL Fetch and email quotas. The published URL Fetch quota is 20,000 calls/day for consumer accounts and 100,000 for Workspace accounts; email recipient quotas also vary by account type. These limits can change. See [Apps Script quotas](https://developers.google.com/apps-script/guides/services/quotas).
 - This is designed for a low-volume school prototype, not guaranteed unlimited or 24/7 production service. If quotas are exceeded, Apps Script or Firestore may reject writes until quotas reset or the project is moved to a paid plan.
-- The device secret is a shared credential. Keep it only in Apps Script Script Properties and the bridge computer's environment variables. Rotate it in both places if it is exposed.
+- The device secret is a shared credential. Keep it in Apps Script Script Properties and only in the relevant local client configuration: the bridge computer's environment variable for Uno/HC-05, or the Git-ignored `hardware/esp8266_secrets.h` for ESP8266. Never commit or share it. Rotate it in Apps Script and every configured client if it is exposed.
 
 ## Browser Staffroom audio alerts
 
