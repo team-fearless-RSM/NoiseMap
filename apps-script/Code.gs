@@ -4,7 +4,31 @@ const NM_RECIPIENT =
   "guruprasad.kothavale@iteachschools.org";
 
 const NM_HARDWARE_SOURCE = "arduino_uno_hc05";
+const NM_ESP8266_SOURCE = "esp8266_lm393";
 const NM_SIMULATOR_SOURCE = "noise_map_simulator";
+
+// Both physical transports write to the same observations collection.
+function nmIsHardwareSource(source) {
+  return source === NM_HARDWARE_SOURCE ||
+    source === NM_ESP8266_SOURCE;
+}
+
+function nmGetHardwareSource(data) {
+  const source = String(
+    data && data.source ? data.source : NM_HARDWARE_SOURCE
+  ).trim();
+
+  if (!nmIsHardwareSource(source)) {
+    throw new Error("Unsupported physical hardware source: " + source);
+  }
+
+  return source;
+}
+
+// One-time activation settings for the physical NodeMCU registration.
+// Run activateNoiseMapEsp8266Device() manually after reviewing these IDs.
+const NM_ESP8266_DEVICE_ID = "NM-SIM-01";
+const NM_ESP8266_LOCATION_ID = "420";
 
 const NM_MANUAL_TEST_ALERT_ID =
   "WrLs3x0sthG6lR58bciS";
@@ -194,7 +218,7 @@ function diagnoseAllNoiseMapObservations() {
     }
 
     if (
-      nmGetString(fields, "source", "") === NM_HARDWARE_SOURCE &&
+      nmIsHardwareSource(nmGetString(fields, "source", "")) &&
       (!fields.isSimulated ||
        fields.isSimulated.booleanValue !== true)
     ) {
@@ -212,7 +236,7 @@ function diagnoseAllNoiseMapObservations() {
   Logger.log("TOTAL DOCUMENTS: " + documents.length);
   Logger.log("DOCUMENTS WITH FIELDS: " + withFields);
   Logger.log("EMPTY DOCUMENTS: " + withoutFields);
-  Logger.log("REAL UNO + HC-05 DOCUMENTS: " + realESP);
+  Logger.log("REAL PHYSICAL HARDWARE DOCUMENTS (UNO/HC-05 + ESP8266): " + realESP);
   Logger.log("SIMULATED DOCUMENTS: " + simulated);
 }
 
@@ -374,6 +398,7 @@ function doPost(e) {
     if (data.event === "heartbeat") {
       const deviceId = String(data.device_id || "").trim();
       const locationId = String(data.location_id || "").trim();
+      const hardwareSource = nmGetHardwareSource(data);
 
       if (!deviceId || !locationId) {
         throw new Error(
@@ -539,7 +564,7 @@ function doPost(e) {
           timestampValue: now
         },
         lastHeartbeatSource: {
-          stringValue: "apps_script_hc05_bridge"
+          stringValue: hardwareSource
         },
         lastHeartbeatFirmwareVersion: {
           stringValue: String(
@@ -658,6 +683,7 @@ function doPost(e) {
 
       const status = String(data.status || "NORMAL");
       const warningCount = Number(data.warning_count || 0);
+      const hardwareSource = nmGetHardwareSource(data);
 
       const observationFields = {
         deviceId: { stringValue: deviceId },
@@ -680,7 +706,7 @@ function doPost(e) {
           integerValue: String(warningCount)
         },
         source: {
-          stringValue: NM_HARDWARE_SOURCE
+          stringValue: hardwareSource
         },
         isSimulated: {
           booleanValue: false
@@ -773,7 +799,7 @@ function doPost(e) {
         const alertFields = {
           deviceId: { stringValue: deviceId },
           locationId: { stringValue: locationId },
-          source: { stringValue: NM_HARDWARE_SOURCE },
+          source: { stringValue: hardwareSource },
           status: { stringValue: "open" },
           createdAt: { timestampValue: now },
           timestamp: { timestampValue: now },
@@ -819,6 +845,112 @@ function doPost(e) {
       error: error.message
     });
   }
+}
+
+
+// ============================================================
+// 9A. ONE-TIME NODEMCU DEVICE ACTIVATION
+// ============================================================
+// Run this manually only after confirming the device and location IDs.
+// It verifies the registered device and active location before updating
+// the device to connectionStatus=active and assigning the supplied location.
+function activateNoiseMapEsp8266Device() {
+  const deviceId = NM_ESP8266_DEVICE_ID;
+  const locationId = NM_ESP8266_LOCATION_ID;
+
+  if (!deviceId || !locationId) {
+    throw new Error("Set the ESP8266 device and location IDs first.");
+  }
+
+  const queryPayload = {
+    structuredQuery: {
+      from: [{ collectionId: "devices" }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: "deviceId" },
+          op: "EQUAL",
+          value: { stringValue: deviceId }
+        }
+      },
+      limit: 2
+    }
+  };
+
+  const queryResponse = UrlFetchApp.fetch(
+    nmBaseUrl() + ":runQuery",
+    {
+      method: "post",
+      headers: nmHeaders(),
+      contentType: "application/json",
+      payload: JSON.stringify(queryPayload),
+      muteHttpExceptions: true
+    }
+  );
+
+  if (queryResponse.getResponseCode() !== 200) {
+    throw new Error(
+      "Could not find device: " + queryResponse.getContentText()
+    );
+  }
+
+  const matches = JSON.parse(queryResponse.getContentText())
+    .filter(function(item) { return item && item.document; });
+
+  if (matches.length !== 1) {
+    throw new Error(
+      "Expected exactly one registered device named " + deviceId +
+      "; found " + matches.length + ". No changes were made."
+    );
+  }
+
+  const device = matches[0].document;
+  const fields = device.fields || {};
+  if (nmGetString(fields, "deviceId", "") !== deviceId) {
+    throw new Error("Registered device ID verification failed.");
+  }
+
+  const locationResponse = UrlFetchApp.fetch(
+    nmBaseUrl() + "/locations/" + encodeURIComponent(locationId),
+    {
+      method: "get",
+      headers: nmHeaders(),
+      muteHttpExceptions: true
+    }
+  );
+
+  if (locationResponse.getResponseCode() !== 200) {
+    throw new Error(
+      "Location " + locationId + " was not found. No device changes were made."
+    );
+  }
+
+  const location = JSON.parse(locationResponse.getContentText());
+  if (nmGetString(location.fields || {}, "status", "").toLowerCase() !== "active") {
+    throw new Error(
+      "Location " + locationId + " is not active. No device changes were made."
+    );
+  }
+
+  const deviceUrl = "https://firestore.googleapis.com/v1/" + device.name;
+  nmFirestoreWrite(
+    "patch",
+    deviceUrl +
+      "?updateMask.fieldPaths=connectionStatus" +
+      "&updateMask.fieldPaths=hardware" +
+      "&updateMask.fieldPaths=locationId",
+    {
+      fields: {
+        connectionStatus: { stringValue: "active" },
+        hardware: { stringValue: "NodeMCU ESP8266 + LM393 4-pin" },
+        locationId: { stringValue: locationId }
+      }
+    }
+  );
+
+  Logger.log(
+    "Activated " + deviceId + " at location " + locationId +
+    " for ESP8266 Wi-Fi hardware."
+  );
 }
 
 
@@ -965,7 +1097,7 @@ function nmCheckQuietPeriod(
       const fields = doc.fields || {};
 
       return (
-        nmGetString(fields, "source", "") === NM_HARDWARE_SOURCE &&
+        nmIsHardwareSource(nmGetString(fields, "source", "")) &&
         nmGetString(fields, "deviceId", "") === deviceId &&
         (!fields.isSimulated ||
           fields.isSimulated.booleanValue !== true) &&
@@ -1222,7 +1354,7 @@ function pollNoiseMapAlerts() {
       const fields = alert.fields || {};
 
       if (
-        nmGetString(fields, "source", "") !== NM_HARDWARE_SOURCE ||
+        !nmIsHardwareSource(nmGetString(fields, "source", "")) ||
         (fields.isSimulated && fields.isSimulated.booleanValue === true) ||
         nmGetString(fields, "status", "") !== "open" ||
         Number(
