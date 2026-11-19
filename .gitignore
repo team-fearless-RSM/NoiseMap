@@ -5,3 +5,6 @@ Thumbs.db
 node_modules/
 .env
 .env.*
+
+# Local ESP8266 credentials (never commit)
+hardware/esp8266_secrets.h
