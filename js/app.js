@@ -85,7 +85,7 @@
     }
     const latestByLocation = new Map();
     (items || []).forEach(observation => {
-      if (!observation || observation.isSimulated === true || observation.source !== "arduino_uno_hc05") return;
+      if (!observation || observation.isSimulated === true || !["arduino_uno_hc05", "esp8266_lm393"].includes(observation.source)) return;
       const device = cachedDevices.find(entry => entry.deviceId === observation.deviceId || entry.id === observation.deviceId);
       const locationId = observation.locationId || (device && device.locationId);
       const date = dashboardDate(observation.timestamp || observation.createdAt);
@@ -1553,7 +1553,7 @@
     const start = now - 45 * 60 * 1000;
     calibrated.forEach(device => {
       const samples = cachedObservations.filter(item => {
-        if (item.isSimulated === true || item.source !== "arduino_uno_hc05" ||
+        if (item.isSimulated === true || !["arduino_uno_hc05", "esp8266_lm393"].includes(item.source) ||
             !observationMatchesDevice(item, device)) return false;
         const value = item.timestamp || item.createdAt;
         const date = value && typeof value.toDate === "function" ? value.toDate() : new Date(value);
